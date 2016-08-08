@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"text/tabwriter"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // ReleasesList lists an app's releases.
-func ReleasesList(cf, appID string, results int) error {
+func ReleasesList(cf, appID string, results int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -21,11 +22,11 @@ func ReleasesList(cf, appID string, results int) error {
 	}
 
 	releases, count, err := releases.List(s.Client, appID, results)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Releases%s", appID, limitCount(len(releases), count))
+	fmt.Fprintf(wOut, "=== %s Releases%s", appID, limitCount(len(releases), count))
 
 	w := new(tabwriter.Writer)
 
@@ -38,7 +39,7 @@ func ReleasesList(cf, appID string, results int) error {
 }
 
 // ReleasesInfo prints info about a specific release.
-func ReleasesInfo(cf, appID string, version int) error {
+func ReleasesInfo(cf, appID string, version int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -46,26 +47,26 @@ func ReleasesInfo(cf, appID string, version int) error {
 	}
 
 	r, err := releases.Get(s.Client, appID, version)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Release v%d\n", appID, version)
+	fmt.Fprintf(wOut, "=== %s Release v%d\n", appID, version)
 	if r.Build != "" {
-		fmt.Println("build:   ", r.Build)
+		fmt.Fprintln(wOut, "build:   ", r.Build)
 	}
-	fmt.Println("config:  ", r.Config)
-	fmt.Println("owner:   ", r.Owner)
-	fmt.Println("created: ", r.Created)
-	fmt.Println("summary: ", r.Summary)
-	fmt.Println("updated: ", r.Updated)
-	fmt.Println("uuid:    ", r.UUID)
+	fmt.Fprintln(wOut, "config:  ", r.Config)
+	fmt.Fprintln(wOut, "owner:   ", r.Owner)
+	fmt.Fprintln(wOut, "created: ", r.Created)
+	fmt.Fprintln(wOut, "summary: ", r.Summary)
+	fmt.Fprintln(wOut, "updated: ", r.Updated)
+	fmt.Fprintln(wOut, "uuid:    ", r.UUID)
 
 	return nil
 }
 
 // ReleasesRollback rolls an app back to a previous release.
-func ReleasesRollback(cf, appID string, version int) error {
+func ReleasesRollback(cf, appID string, version int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -73,20 +74,20 @@ func ReleasesRollback(cf, appID string, version int) error {
 	}
 
 	if version == -1 {
-		fmt.Print("Rolling back one release... ")
+		fmt.Fprint(wOut, "Rolling back one release... ")
 	} else {
-		fmt.Printf("Rolling back to v%d... ", version)
+		fmt.Fprintf(wOut, "Rolling back to v%d... ", version)
 	}
 
-	quit := progress()
+	quit := progress(wOut)
 	newVersion, err := releases.Rollback(s.Client, appID, version)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("done, v%d\n", newVersion)
+	fmt.Fprintf(wOut, "done, v%d\n", newVersion)
 
 	return nil
 }

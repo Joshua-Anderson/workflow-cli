@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/controller-sdk-go/api"
 	"github.com/deis/controller-sdk-go/config"
 )
 
 // HealthchecksList lists an app's healthchecks.
-func HealthchecksList(cf, appID string) error {
+func HealthchecksList(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -21,35 +22,35 @@ func HealthchecksList(cf, appID string) error {
 		return err
 	}
 
-	fmt.Printf("=== %s Healthchecks\n\n", appID)
+	fmt.Fprintf(wOut, "=== %s Healthchecks\n\n", appID)
 
-	fmt.Println("--- Liveness")
+	fmt.Fprintln(wOut, "--- Liveness")
 	if livenessProbe, found := config.Healthcheck["livenessProbe"]; found {
-		fmt.Println(livenessProbe)
+		fmt.Fprintln(wOut, livenessProbe)
 	} else {
-		fmt.Println("No liveness probe configured.")
+		fmt.Fprintln(wOut, "No liveness probe configured.")
 	}
 
-	fmt.Println("\n--- Readiness")
+	fmt.Fprintln(wOut, "\n--- Readiness")
 	if readinessProbe, found := config.Healthcheck["readinessProbe"]; found {
-		fmt.Println(readinessProbe)
+		fmt.Fprintln(wOut, readinessProbe)
 	} else {
-		fmt.Println("No readiness probe configured.")
+		fmt.Fprintln(wOut, "No readiness probe configured.")
 	}
 	return nil
 }
 
 // HealthchecksSet sets an app's healthchecks.
-func HealthchecksSet(cf, appID, healthcheckType string, probe *api.Healthcheck) error {
+func HealthchecksSet(cf, appID, healthcheckType string, probe *api.Healthcheck, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Applying %s healthcheck... ", healthcheckType)
+	fmt.Fprintf(wOut, "Applying %s healthcheck... ", healthcheckType)
 
-	quit := progress()
+	quit := progress(wOut)
 	configObj := api.Config{}
 	configObj.Healthcheck = make(map[string]*api.Healthcheck)
 
@@ -64,22 +65,22 @@ func HealthchecksSet(cf, appID, healthcheckType string, probe *api.Healthcheck) 
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return HealthchecksList(cf, appID)
+	return HealthchecksList(cf, appID, wOut)
 }
 
 // HealthchecksUnset removes an app's healthchecks.
-func HealthchecksUnset(cf, appID string, healthchecks []string) error {
+func HealthchecksUnset(cf, appID string, healthchecks []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Removing healthchecks... ")
+	fmt.Fprint(wOut, "Removing healthchecks... ")
 
-	quit := progress()
+	quit := progress(wOut)
 
 	configObj := api.Config{}
 
@@ -100,7 +101,7 @@ func HealthchecksUnset(cf, appID string, healthchecks []string) error {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return HealthchecksList(cf, appID)
+	return HealthchecksList(cf, appID, wOut)
 }

@@ -2,8 +2,8 @@ package parser
 
 import (
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"strconv"
 )
 
@@ -34,15 +34,15 @@ func responseLimit(limit string) (int, error) {
 }
 
 // PrintUsage runs if no matching command is found.
-func PrintUsage() {
-	fmt.Fprintln(os.Stderr, "Found no matching command, try 'deis help'")
-	fmt.Fprintln(os.Stderr, "Usage: deis <command> [<args>...]")
+func PrintUsage(wErr io.Writer) {
+	fmt.Fprintln(wErr, "Found no matching command, try 'deis help'")
+	fmt.Fprintln(wErr, "Usage: deis <command> [<args>...]")
 }
 
-func printHelp(argv []string, usage string) bool {
+func printHelp(argv []string, usage string, wOut io.Writer) bool {
 	if len(argv) > 1 {
 		if argv[1] == "--help" || argv[1] == "-h" {
-			fmt.Print(usage)
+			fmt.Fprint(wOut, usage)
 			return true
 		}
 	}

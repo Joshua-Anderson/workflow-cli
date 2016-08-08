@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Builds routes build commands to their specific function.
-func Builds(argv []string) error {
+func Builds(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for builds:
 
@@ -18,25 +20,25 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "builds:list":
-		return buildsList(argv)
+		return buildsList(argv, wOut)
 	case "builds:create":
-		return buildsCreate(argv)
+		return buildsCreate(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "builds" {
 			argv[0] = "builds:list"
-			return buildsList(argv)
+			return buildsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func buildsList(argv []string) error {
+func buildsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists build history for an application.
 
@@ -61,10 +63,10 @@ Options:
 		return err
 	}
 
-	return cmd.BuildsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), results)
+	return cmd.BuildsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), results, wOut)
 }
 
-func buildsCreate(argv []string) error {
+func buildsCreate(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Creates a new build of an application. Imports an <image> and deploys it to Deis
 as a new release. If a Procfile is present in the current directory, it will be used
@@ -96,5 +98,5 @@ Options:
 	procfile := safeGetValue(args, "--procfile")
 	cf := safeGetValue(args, "--config")
 
-	return cmd.BuildsCreate(cf, app, image, procfile)
+	return cmd.BuildsCreate(cf, app, image, procfile, wOut)
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 )
 
 // BuildsList lists an app's builds.
-func BuildsList(cf, appID string, results int) error {
+func BuildsList(cf, appID string, results int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -23,20 +24,20 @@ func BuildsList(cf, appID string, results int) error {
 	}
 
 	builds, count, err := builds.List(s.Client, appID, results)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Builds%s", appID, limitCount(len(builds), count))
+	fmt.Fprintf(wOut, "=== %s Builds%s", appID, limitCount(len(builds), count))
 
 	for _, build := range builds {
-		fmt.Println(build.UUID, build.Created)
+		fmt.Fprintln(wOut, build.UUID, build.Created)
 	}
 	return nil
 }
 
 // BuildsCreate creates a build for an app.
-func BuildsCreate(cf, appID, image, procfile string) error {
+func BuildsCreate(cf, appID, image, procfile string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -60,16 +61,16 @@ func BuildsCreate(cf, appID, image, procfile string) error {
 		}
 	}
 
-	fmt.Print("Creating build... ")
-	quit := progress()
+	fmt.Fprint(wOut, "Creating build... ")
+	quit := progress(wOut)
 	_, err = builds.New(s.Client, appID, image, procfileMap)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 
 	return nil
 }

@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Limits routes limits commands to their specific function
-func Limits(argv []string) error {
+func Limits(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for limits:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "limits:list":
-		return limitsList(argv)
+		return limitsList(argv, wOut)
 	case "limits:set":
-		return limitSet(argv)
+		return limitSet(argv, wOut)
 	case "limits:unset":
-		return limitUnset(argv)
+		return limitUnset(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "limits" {
 			argv[0] = "limits:list"
-			return limitsList(argv)
+			return limitsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func limitsList(argv []string) error {
+func limitsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists resource limits for an application.
 
@@ -56,10 +58,10 @@ Options:
 		return err
 	}
 
-	return cmd.LimitsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.LimitsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func limitSet(argv []string) error {
+func limitSet(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Sets resource limits for an application.
 
@@ -112,10 +114,10 @@ Options:
 		limitType = "cpu"
 	}
 
-	return cmd.LimitsSet(cf, app, limits, limitType)
+	return cmd.LimitsSet(cf, app, limits, limitType, wOut)
 }
 
-func limitUnset(argv []string) error {
+func limitUnset(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Unsets resource limits for an application.
 
@@ -150,5 +152,5 @@ Options:
 		limitType = "cpu"
 	}
 
-	return cmd.LimitsUnset(cf, app, limits, limitType)
+	return cmd.LimitsUnset(cf, app, limits, limitType, wOut)
 }

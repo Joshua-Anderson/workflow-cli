@@ -2,13 +2,14 @@ package parser
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/workflow-cli/version"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Version displays the client version
-func Version(argv []string) error {
+func Version(argv []string, wOut io.Writer) error {
 	usage := `
 Displays the client version.
 
@@ -20,7 +21,7 @@ Use 'deis help [command]' to learn more.
 		return err
 	}
 
-	fmt.Println(version.Version)
+	fmt.Fprintln(wOut, version.Version)
 
 	return nil
 }

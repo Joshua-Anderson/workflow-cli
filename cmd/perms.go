@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/controller-sdk-go/perms"
 	"github.com/deis/workflow-cli/pkg/git"
@@ -9,7 +10,7 @@ import (
 )
 
 // PermsList prints which users have permissions.
-func PermsList(cf, appID string, admin bool, results int) error {
+func PermsList(cf, appID string, admin bool, results int, wOut io.Writer) error {
 	s, appID, err := permsLoad(cf, appID, admin)
 
 	if err != nil {
@@ -28,25 +29,25 @@ func PermsList(cf, appID string, admin bool, results int) error {
 		users, err = perms.List(s.Client, appID)
 	}
 
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
 	if admin {
-		fmt.Printf("=== Administrators%s", limitCount(len(users), count))
+		fmt.Fprintf(wOut, "=== Administrators%s", limitCount(len(users), count))
 	} else {
-		fmt.Printf("=== %s's Users\n", appID)
+		fmt.Fprintf(wOut, "=== %s's Users\n", appID)
 	}
 
 	for _, user := range users {
-		fmt.Println(user)
+		fmt.Fprintln(wOut, user)
 	}
 
 	return nil
 }
 
 // PermCreate adds a user to an app or makes them an administrator.
-func PermCreate(cf, appID string, username string, admin bool) error {
+func PermCreate(cf, appID string, username string, admin bool, wOut io.Writer) error {
 
 	s, appID, err := permsLoad(cf, appID, admin)
 
@@ -55,24 +56,24 @@ func PermCreate(cf, appID string, username string, admin bool) error {
 	}
 
 	if admin {
-		fmt.Printf("Adding %s to system administrators... ", username)
+		fmt.Fprintf(wOut, "Adding %s to system administrators... ", username)
 		err = perms.NewAdmin(s.Client, username)
 	} else {
-		fmt.Printf("Adding %s to %s collaborators... ", username, appID)
+		fmt.Fprintf(wOut, "Adding %s to %s collaborators... ", username, appID)
 		err = perms.New(s.Client, appID, username)
 	}
 
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 
 	return nil
 }
 
 // PermDelete removes a user from an app or revokes admin privileges.
-func PermDelete(cf, appID, username string, admin bool) error {
+func PermDelete(cf, appID, username string, admin bool, wOut io.Writer) error {
 
 	s, appID, err := permsLoad(cf, appID, admin)
 
@@ -81,18 +82,18 @@ func PermDelete(cf, appID, username string, admin bool) error {
 	}
 
 	if admin {
-		fmt.Printf("Removing %s from system administrators... ", username)
+		fmt.Fprintf(wOut, "Removing %s from system administrators... ", username)
 		err = perms.DeleteAdmin(s.Client, username)
 	} else {
-		fmt.Printf("Removing %s from %s collaborators... ", username, appID)
+		fmt.Fprintf(wOut, "Removing %s from %s collaborators... ", username, appID)
 		err = perms.Delete(s.Client, appID, username)
 	}
 
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 
 	return nil
 }

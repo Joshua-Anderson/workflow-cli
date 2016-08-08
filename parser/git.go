@@ -2,13 +2,14 @@ package parser
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Git routes git commands to their specific function.
-func Git(argv []string) error {
+func Git(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for git:
 
@@ -20,19 +21,19 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "git:remote":
-		return gitRemote(argv)
+		return gitRemote(argv, wOut)
 	case "git:remove":
-		return gitRemove(argv)
+		return gitRemove(argv, wOut)
 	case "git":
-		fmt.Print(usage)
+		fmt.Fprint(wOut, usage)
 		return nil
 	default:
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func gitRemote(argv []string) error {
+func gitRemote(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Adds git remote of application to repository
 
@@ -58,10 +59,10 @@ Options:
 	remote := safeGetValue(args, "--remote")
 	force := args["--force"].(bool)
 
-	return cmd.GitRemote(cf, app, remote, force)
+	return cmd.GitRemote(cf, app, remote, force, wOut)
 }
 
-func gitRemove(argv []string) error {
+func gitRemove(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Removes git remotes of application from repository.
 
@@ -78,5 +79,5 @@ Options:
 		return err
 	}
 
-	return cmd.GitRemove(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.GitRemove(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }

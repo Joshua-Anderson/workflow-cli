@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Keys routes key commands to the specific function.
-func Keys(argv []string) error {
+func Keys(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for SSH keys:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "keys:list":
-		return keysList(argv)
+		return keysList(argv, wOut)
 	case "keys:add":
-		return keyAdd(argv)
+		return keyAdd(argv, wOut)
 	case "keys:remove":
-		return keyRemove(argv)
+		return keyRemove(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "keys" {
 			argv[0] = "keys:list"
-			return keysList(argv)
+			return keysList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func keysList(argv []string) error {
+func keysList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists SSH keys for the logged in user.
 
@@ -62,10 +64,10 @@ Options:
 		return err
 	}
 
-	return cmd.KeysList(safeGetValue(args, "--config"), results)
+	return cmd.KeysList(safeGetValue(args, "--config"), results, wOut)
 }
 
-func keyAdd(argv []string) error {
+func keyAdd(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Adds SSH keys for the logged in user.
 
@@ -85,10 +87,10 @@ Arguments:
 	cf := safeGetValue(args, "--config")
 	key := safeGetValue(args, "<key>")
 
-	return cmd.KeyAdd(cf, key)
+	return cmd.KeyAdd(cf, key, wOut)
 }
 
-func keyRemove(argv []string) error {
+func keyRemove(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Removes an SSH key for the logged in user.
 
@@ -108,5 +110,5 @@ Arguments:
 	cf := safeGetValue(args, "--config")
 	key := safeGetValue(args, "<key>")
 
-	return cmd.KeyRemove(cf, key)
+	return cmd.KeyRemove(cf, key, wOut)
 }

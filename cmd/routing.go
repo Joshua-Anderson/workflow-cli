@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/controller-sdk-go/api"
 	"github.com/deis/controller-sdk-go/config"
 )
 
 // RoutingInfo provides information about the status of app routing.
-func RoutingInfo(cf, appID string) error {
+func RoutingInfo(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -16,29 +17,29 @@ func RoutingInfo(cf, appID string) error {
 	}
 
 	config, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
 	if config.Routable {
-		fmt.Println("Routing is enabled.")
+		fmt.Fprintln(wOut, "Routing is enabled.")
 	} else {
-		fmt.Println("Routing is disabled.")
+		fmt.Fprintln(wOut, "Routing is disabled.")
 	}
 	return nil
 }
 
 // RoutingEnable enables an app from being exposed by the router.
-func RoutingEnable(cf, appID string) error {
+func RoutingEnable(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Enabling routing for %s... ", appID)
+	fmt.Fprintf(wOut, "Enabling routing for %s... ", appID)
 
-	quit := progress()
+	quit := progress(wOut)
 	_, err = config.Set(s.Client, appID, api.Config{Routable: true})
 
 	quit <- true
@@ -48,21 +49,21 @@ func RoutingEnable(cf, appID string) error {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 	return nil
 }
 
 // RoutingDisable disables an app from being exposed by the router.
-func RoutingDisable(cf, appID string) error {
+func RoutingDisable(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Disabling routing for %s... ", appID)
+	fmt.Fprintf(wOut, "Disabling routing for %s... ", appID)
 
-	quit := progress()
+	quit := progress(wOut)
 	_, err = config.Set(s.Client, appID, api.Config{Routable: false})
 
 	quit <- true
@@ -72,6 +73,6 @@ func RoutingDisable(cf, appID string) error {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 	return nil
 }

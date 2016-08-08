@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Shortcuts displays all relevant shortcuts for the CLI.
-func Shortcuts(argv []string) error {
+func Shortcuts(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for shortcuts:
 
@@ -17,23 +19,23 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "shortcuts:list":
-		return shortcutsList(argv)
+		return shortcutsList(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "shortcuts" {
 			argv[0] = "shortcuts:list"
-			return shortcutsList(argv)
+			return shortcutsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func shortcutsList(argv []string) error {
+func shortcutsList(argv []string, wOut io.Writer) error {
 	usage := `
 Lists all relevant shortcuts for the CLI
 
@@ -46,5 +48,5 @@ Usage: deis shortcuts:list
 		return err
 	}
 
-	return cmd.ShortcutsList()
+	return cmd.ShortcutsList(wOut)
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/workflow-cli/pkg/git"
 )
@@ -10,7 +11,7 @@ const remoteCreationMsg = "Git remote %s successfully created for app %s.\n"
 const remoteDeletionMsg = "Git remotes for app %s removed.\n"
 
 // GitRemote creates a git remote for a deis app.
-func GitRemote(cf, appID, remote string, force bool) error {
+func GitRemote(cf, appID, remote string, force bool, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	remoteURL, err := git.RemoteValue(remote)
@@ -19,7 +20,7 @@ func GitRemote(cf, appID, remote string, force bool) error {
 		//If git remote doesn't exist, create it without issue
 		if err == git.ErrRemoteNotFound {
 			git.CreateRemote(s.Client.ControllerURL.Host, remote, appID)
-			fmt.Printf(remoteCreationMsg, remote, appID)
+			fmt.Fprintf(wOut, remoteCreationMsg, remote, appID)
 			return nil
 		}
 
@@ -29,15 +30,15 @@ func GitRemote(cf, appID, remote string, force bool) error {
 	expectedURL := git.RemoteURL(s.Client.ControllerURL.Host, appID)
 
 	if remoteURL == expectedURL {
-		fmt.Printf("Remote %s already exists and is correctly configured for app %s.\n", remote, appID)
+		fmt.Fprintf(wOut, "Remote %s already exists and is correctly configured for app %s.\n", remote, appID)
 		return nil
 	}
 
 	if force {
-		fmt.Printf("Deleting git remote %s.\n", remote)
+		fmt.Fprintf(wOut, "Deleting git remote %s.\n", remote)
 		git.DeleteRemote(remote)
 		git.CreateRemote(s.Client.ControllerURL.Host, remote, appID)
-		fmt.Printf(remoteCreationMsg, remote, appID)
+		fmt.Fprintf(wOut, remoteCreationMsg, remote, appID)
 		return nil
 	}
 
@@ -49,7 +50,7 @@ func GitRemote(cf, appID, remote string, force bool) error {
 }
 
 // GitRemove removes a application git remote from a repository
-func GitRemove(cf, appID string) error {
+func GitRemove(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -62,6 +63,6 @@ func GitRemove(cf, appID string) error {
 		return err
 	}
 
-	fmt.Printf(remoteDeletionMsg, appID)
+	fmt.Fprintf(wOut, remoteDeletionMsg, appID)
 	return nil
 }

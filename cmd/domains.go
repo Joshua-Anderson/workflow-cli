@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/controller-sdk-go/domains"
 )
 
 // DomainsList lists domains registered with an app.
-func DomainsList(cf, appID string, results int) error {
+func DomainsList(cf, appID string, results int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -19,58 +20,58 @@ func DomainsList(cf, appID string, results int) error {
 	}
 
 	domains, count, err := domains.List(s.Client, appID, results)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Domains%s", appID, limitCount(len(domains), count))
+	fmt.Fprintf(wOut, "=== %s Domains%s", appID, limitCount(len(domains), count))
 
 	for _, domain := range domains {
-		fmt.Println(domain.Domain)
+		fmt.Fprintln(wOut, domain.Domain)
 	}
 	return nil
 }
 
 // DomainsAdd adds a domain to an app.
-func DomainsAdd(cf, appID, domain string) error {
+func DomainsAdd(cf, appID, domain string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Adding %s to %s... ", domain, appID)
+	fmt.Fprintf(wOut, "Adding %s to %s... ", domain, appID)
 
-	quit := progress()
+	quit := progress(wOut)
 	_, err = domains.New(s.Client, appID, domain)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 	return nil
 }
 
 // DomainsRemove removes a domain registered with an app.
-func DomainsRemove(cf, appID, domain string) error {
+func DomainsRemove(cf, appID, domain string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Removing %s from %s... ", domain, appID)
+	fmt.Fprintf(wOut, "Removing %s from %s... ", domain, appID)
 
-	quit := progress()
+	quit := progress(wOut)
 	err = domains.Delete(s.Client, appID, domain)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 	return nil
 }

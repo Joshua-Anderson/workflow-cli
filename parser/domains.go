@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Domains routes domain commands to their specific function.
-func Domains(argv []string) error {
+func Domains(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for domains:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "domains:add":
-		return domainsAdd(argv)
+		return domainsAdd(argv, wOut)
 	case "domains:list":
-		return domainsList(argv)
+		return domainsList(argv, wOut)
 	case "domains:remove":
-		return domainsRemove(argv)
+		return domainsRemove(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "domains" {
 			argv[0] = "domains:list"
-			return domainsList(argv)
+			return domainsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func domainsAdd(argv []string) error {
+func domainsAdd(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Binds a domain to an application.
 
@@ -64,10 +66,10 @@ Options:
 	app := safeGetValue(args, "--app")
 	domain := safeGetValue(args, "<domain>")
 
-	return cmd.DomainsAdd(cf, app, domain)
+	return cmd.DomainsAdd(cf, app, domain, wOut)
 }
 
-func domainsList(argv []string) error {
+func domainsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists domains bound to an application.
 
@@ -95,10 +97,10 @@ Options:
 	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 
-	return cmd.DomainsList(cf, app, results)
+	return cmd.DomainsList(cf, app, results, wOut)
 }
 
-func domainsRemove(argv []string) error {
+func domainsRemove(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Unbinds a domain for an application.
 
@@ -123,5 +125,5 @@ Options:
 	app := safeGetValue(args, "--app")
 	domain := safeGetValue(args, "<domain>")
 
-	return cmd.DomainsRemove(cf, app, domain)
+	return cmd.DomainsRemove(cf, app, domain, wOut)
 }

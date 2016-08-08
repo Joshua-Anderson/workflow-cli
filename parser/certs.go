@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Certs routes certs commands to their specific function.
-func Certs(argv []string) error {
+func Certs(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for certs:
 
@@ -22,33 +24,33 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "certs:list":
-		return certsList(argv)
+		return certsList(argv, wOut)
 	case "certs:add":
-		return certAdd(argv)
+		return certAdd(argv, wOut)
 	case "certs:remove":
-		return certRemove(argv)
+		return certRemove(argv, wOut)
 	case "certs:info":
-		return certInfo(argv)
+		return certInfo(argv, wOut)
 	case "certs:attach":
-		return certAttach(argv)
+		return certAttach(argv, wOut)
 	case "certs:detach":
-		return certDetach(argv)
+		return certDetach(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "certs" {
 			argv[0] = "certs:list"
-			return certsList(argv)
+			return certsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func certsList(argv []string) error {
+func certsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Show certificate information for an SSL application.
 
@@ -69,10 +71,10 @@ Options:
 		return err
 	}
 
-	return cmd.CertsList(safeGetValue(args, "--config"), results)
+	return cmd.CertsList(safeGetValue(args, "--config"), results, wOut)
 }
 
-func certAdd(argv []string) error {
+func certAdd(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Binds a certificate/key pair to an application.
 
@@ -99,10 +101,10 @@ Options:
 	key := args["<key>"].(string)
 	cf := safeGetValue(args, "--config")
 
-	return cmd.CertAdd(cf, cert, key, name)
+	return cmd.CertAdd(cf, cert, key, name, wOut)
 }
 
-func certRemove(argv []string) error {
+func certRemove(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 removes a certificate/key pair from the application.
 
@@ -120,10 +122,10 @@ Options:
 		return err
 	}
 
-	return cmd.CertRemove(safeGetValue(args, "--config"), safeGetValue(args, "<name>"))
+	return cmd.CertRemove(safeGetValue(args, "--config"), safeGetValue(args, "<name>"), wOut)
 }
 
-func certInfo(argv []string) error {
+func certInfo(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 fetch more detailed information about a certificate
 
@@ -141,10 +143,10 @@ Options:
 		return err
 	}
 
-	return cmd.CertInfo(safeGetValue(args, "--config"), safeGetValue(args, "<name>"))
+	return cmd.CertInfo(safeGetValue(args, "--config"), safeGetValue(args, "<name>"), wOut)
 }
 
-func certAttach(argv []string) error {
+func certAttach(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 attach a certificate to a domain.
 
@@ -167,10 +169,10 @@ Options:
 	name := safeGetValue(args, "<name>")
 	domain := safeGetValue(args, "<domain>")
 	cf := safeGetValue(args, "--config")
-	return cmd.CertAttach(cf, name, domain)
+	return cmd.CertAttach(cf, name, domain, wOut)
 }
 
-func certDetach(argv []string) error {
+func certDetach(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 detach a certificate from a domain.
 
@@ -193,5 +195,5 @@ Options:
 	name := safeGetValue(args, "<name>")
 	domain := safeGetValue(args, "<domain>")
 	cf := safeGetValue(args, "--config")
-	return cmd.CertDetach(cf, name, domain)
+	return cmd.CertDetach(cf, name, domain, wOut)
 }

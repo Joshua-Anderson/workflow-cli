@@ -28,7 +28,7 @@ func TestScaleFail(t *testing.T) {
 	}()
 
 	expected := "'web=-1' does not match the pattern 'type=num', ex: web=2\n"
-	actual := PsScale(file, "testApp", []string{"web=-1"})
+	actual := PsScale(file, "testApp", []string{"web=-1"}, ioutil.Discard)
 	if actual.Error() != expected {
 		t.Errorf("Expected %s, Got %s", expected, actual)
 	}

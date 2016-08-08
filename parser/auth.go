@@ -2,13 +2,14 @@ package parser
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Auth routes auth commands to the specific function.
-func Auth(argv []string) error {
+func Auth(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for auth:
 
@@ -25,29 +26,29 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "auth:register":
-		return authRegister(argv)
+		return authRegister(argv, wOut)
 	case "auth:login":
-		return authLogin(argv)
+		return authLogin(argv, wOut)
 	case "auth:logout":
-		return authLogout(argv)
+		return authLogout(argv, wOut)
 	case "auth:passwd":
-		return authPasswd(argv)
+		return authPasswd(argv, wOut)
 	case "auth:whoami":
-		return authWhoami(argv)
+		return authWhoami(argv, wOut)
 	case "auth:cancel":
-		return authCancel(argv)
+		return authCancel(argv, wOut)
 	case "auth:regenerate":
-		return authRegenerate(argv)
+		return authRegenerate(argv, wOut)
 	case "auth":
-		fmt.Print(usage)
+		fmt.Fprint(wOut, usage)
 		return nil
 	default:
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func authRegister(argv []string) error {
+func authRegister(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Registers a new user with a Deis controller.
 
@@ -85,10 +86,10 @@ Options:
 		sslVerify = true
 	}
 
-	return cmd.Register(cf, controller, username, password, email, sslVerify)
+	return cmd.Register(cf, controller, username, password, email, sslVerify, wOut)
 }
 
-func authLogin(argv []string) error {
+func authLogin(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Logs in by authenticating against a controller.
 
@@ -123,10 +124,10 @@ Options:
 		sslVerify = true
 	}
 
-	return cmd.Login(cf, controller, username, password, sslVerify)
+	return cmd.Login(cf, controller, username, password, sslVerify, wOut)
 }
 
-func authLogout(argv []string) error {
+func authLogout(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Logs out from a controller and clears the user session.
 
@@ -140,10 +141,10 @@ Options:
 		return err
 	}
 
-	return cmd.Logout(safeGetValue(args, "--config"))
+	return cmd.Logout(safeGetValue(args, "--config"), wOut)
 }
 
-func authPasswd(argv []string) error {
+func authPasswd(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Changes the password for the current user.
 
@@ -169,10 +170,10 @@ Options:
 	password := safeGetValue(args, "--password")
 	newPassword := safeGetValue(args, "--new-password")
 
-	return cmd.Passwd(cf, username, password, newPassword)
+	return cmd.Passwd(cf, username, password, newPassword, wOut)
 }
 
-func authWhoami(argv []string) error {
+func authWhoami(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Displays the currently logged in user.
 
@@ -189,10 +190,10 @@ Options:
 		return err
 	}
 
-	return cmd.Whoami(safeGetValue(args, "--config"), args["--all"].(bool))
+	return cmd.Whoami(safeGetValue(args, "--config"), args["--all"].(bool), wOut)
 }
 
-func authCancel(argv []string) error {
+func authCancel(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Cancels and removes the current account.
 
@@ -218,10 +219,10 @@ Options:
 	cf := safeGetValue(args, "--config")
 	yes := args["--yes"].(bool)
 
-	return cmd.Cancel(cf, username, password, yes)
+	return cmd.Cancel(cf, username, password, yes, wOut)
 }
 
-func authRegenerate(argv []string) error {
+func authRegenerate(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Regenerates auth token, defaults to regenerating token for the current user.
 
@@ -244,5 +245,5 @@ Options:
 	cf := safeGetValue(args, "--config")
 	all := args["--all"].(bool)
 
-	return cmd.Regenerate(cf, username, all)
+	return cmd.Regenerate(cf, username, all, wOut)
 }

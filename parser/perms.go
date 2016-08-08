@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Perms routes perms commands to their specific function.
-func Perms(argv []string) error {
+func Perms(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for perms:
 
@@ -19,27 +21,27 @@ Use 'deis help perms:[command]' to learn more.
 
 	switch argv[0] {
 	case "perms:list":
-		return permsList(argv)
+		return permsList(argv, wOut)
 	case "perms:create":
-		return permCreate(argv)
+		return permCreate(argv, wOut)
 	case "perms:delete":
-		return permDelete(argv)
+		return permDelete(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "perms" {
 			argv[0] = "perms:list"
-			return permsList(argv)
+			return permsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func permsList(argv []string) error {
+func permsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists all users with permission to use an app, or lists all users with system
 administrator privileges.
@@ -71,10 +73,10 @@ Options:
 		return err
 	}
 
-	return cmd.PermsList(cf, app, admin, results)
+	return cmd.PermsList(cf, app, admin, results, wOut)
 }
 
-func permCreate(argv []string) error {
+func permCreate(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Gives another user permission to use an app, or gives another user
 system administrator privileges.
@@ -103,10 +105,10 @@ Options:
 	username := args["<username>"].(string)
 	admin := args["--admin"].(bool)
 
-	return cmd.PermCreate(cf, app, username, admin)
+	return cmd.PermCreate(cf, app, username, admin, wOut)
 }
 
-func permDelete(argv []string) error {
+func permDelete(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Revokes another user's permission to use an app, or revokes another user's system
 administrator privileges.
@@ -135,5 +137,5 @@ Options:
 	username := args["<username>"].(string)
 	admin := args["--admin"].(bool)
 
-	return cmd.PermDelete(cf, app, username, admin)
+	return cmd.PermDelete(cf, app, username, admin, wOut)
 }

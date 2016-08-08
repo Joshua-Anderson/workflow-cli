@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/deis/controller-sdk-go/users"
 	"github.com/deis/workflow-cli/settings"
 )
 
 // UsersList lists users registered with the controller.
-func UsersList(cf string, results int) error {
+func UsersList(cf string, results int, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -20,14 +21,14 @@ func UsersList(cf string, results int) error {
 	}
 
 	users, count, err := users.List(s.Client, results)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== Users%s", limitCount(len(users), count))
+	fmt.Fprintf(wOut, "=== Users%s", limitCount(len(users), count))
 
 	for _, user := range users {
-		fmt.Println(user.Username)
+		fmt.Fprintln(wOut, user.Username)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 )
 
 // Healthchecks routes ealthcheck commands to their specific function
-func Healthchecks(argv []string) error {
+func Healthchecks(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for healthchecks:
 
@@ -25,27 +26,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "healthchecks:list":
-		return healthchecksList(argv)
+		return healthchecksList(argv, wOut)
 	case "healthchecks:set":
-		return healthchecksSet(argv)
+		return healthchecksSet(argv, wOut)
 	case "healthchecks:unset":
-		return healthchecksUnset(argv)
+		return healthchecksUnset(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "healthchecks" {
 			argv[0] = "healthchecks:list"
-			return healthchecksList(argv)
+			return healthchecksList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func healthchecksList(argv []string) error {
+func healthchecksList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists healthchecks for an application.
 
@@ -62,10 +63,10 @@ Options:
 		return err
 	}
 
-	return cmd.HealthchecksList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.HealthchecksList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func healthchecksSet(argv []string) error {
+func healthchecksSet(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Sets healthchecks for an application.
 
@@ -194,10 +195,10 @@ Options:
 	default:
 		return fmt.Errorf("Invalid probe type. Must be one of: \"httpGet\", \"exec\"")
 	}
-	return cmd.HealthchecksSet(cf, app, healthcheckType, probe)
+	return cmd.HealthchecksSet(cf, app, healthcheckType, probe, wOut)
 }
 
-func healthchecksUnset(argv []string) error {
+func healthchecksUnset(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Unsets healthchecks for an application.
 
@@ -228,7 +229,7 @@ Options:
 		healthchecks[healthcheck] += "Probe"
 	}
 
-	return cmd.HealthchecksUnset(cf, app, healthchecks)
+	return cmd.HealthchecksUnset(cf, app, healthchecks, wOut)
 }
 
 func parseHeaders(headers []string) ([]*api.KVPair, error) {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/deis/pkg/prettyprint"
@@ -11,7 +12,7 @@ import (
 )
 
 // TagsList lists an app's tags.
-func TagsList(cf, appID string) error {
+func TagsList(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -19,11 +20,11 @@ func TagsList(cf, appID string) error {
 	}
 
 	config, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Tags\n", appID)
+	fmt.Fprintf(wOut, "=== %s Tags\n", appID)
 
 	tagMap := make(map[string]string)
 
@@ -31,50 +32,53 @@ func TagsList(cf, appID string) error {
 		tagMap[key] = fmt.Sprintf("%v", value)
 	}
 
-	fmt.Print(prettyprint.PrettyTabs(tagMap, 5))
+	fmt.Fprint(wOut, prettyprint.PrettyTabs(tagMap, 5))
 
 	return nil
 }
 
 // TagsSet sets an app's tags.
-func TagsSet(cf, appID string, tags []string) error {
+func TagsSet(cf, appID string, tags []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	tagsMap := parseTags(tags)
+	tagsMap, err := parseTags(tags)
+	if err != nil {
+		return err
+	}
 
-	fmt.Print("Applying tags... ")
+	fmt.Fprint(wOut, "Applying tags... ")
 
-	quit := progress()
+	quit := progress(wOut)
 	configObj := api.Config{}
 	configObj.Tags = tagsMap
 
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return TagsList(cf, appID)
+	return TagsList(cf, appID, wOut)
 }
 
 // TagsUnset removes an app's tags.
-func TagsUnset(cf, appID string, tags []string) error {
+func TagsUnset(cf, appID string, tags []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Applying tags... ")
+	fmt.Fprint(wOut, "Applying tags... ")
 
-	quit := progress()
+	quit := progress(wOut)
 
 	configObj := api.Config{}
 
@@ -89,30 +93,29 @@ func TagsUnset(cf, appID string, tags []string) error {
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return TagsList(cf, appID)
+	return TagsList(cf, appID, wOut)
 }
 
-func parseTags(tags []string) map[string]interface{} {
+func parseTags(tags []string) (map[string]interface{}, error) {
 	tagMap := make(map[string]interface{})
 
 	for _, tag := range tags {
 		key, value, err := parseTag(tag)
 
 		if err != nil {
-			fmt.Println(err)
-			continue
+			return nil, err
 		}
 
 		tagMap[key] = value
 	}
 
-	return tagMap
+	return tagMap, nil
 }
 
 func parseTag(tag string) (string, string, error) {

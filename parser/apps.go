@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"io"
 	"strconv"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // Apps routes app commands to their specific function.
-func Apps(argv []string) error {
+func Apps(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for apps:
 
@@ -27,37 +28,37 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "apps:create":
-		return appCreate(argv)
+		return appCreate(argv, wOut)
 	case "apps:list":
-		return appsList(argv)
+		return appsList(argv, wOut)
 	case "apps:info":
-		return appInfo(argv)
+		return appInfo(argv, wOut)
 	case "apps:open":
-		return appOpen(argv)
+		return appOpen(argv, wOut)
 	case "apps:logs":
-		return appLogs(argv)
+		return appLogs(argv, wOut)
 	case "apps:run":
-		return appRun(argv)
+		return appRun(argv, wOut)
 	case "apps:destroy":
-		return appDestroy(argv)
+		return appDestroy(argv, wOut)
 	case "apps:transfer":
-		return appTransfer(argv)
+		return appTransfer(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "apps" {
 			argv[0] = "apps:list"
-			return appsList(argv)
+			return appsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func appCreate(argv []string) error {
+func appCreate(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Creates a new application.
 
@@ -91,10 +92,10 @@ Options:
 	cf := safeGetValue(args, "--config")
 	noRemote := args["--no-remote"].(bool)
 
-	return cmd.AppCreate(cf, id, buildpack, remote, noRemote)
+	return cmd.AppCreate(cf, id, buildpack, remote, noRemote, wOut)
 }
 
-func appsList(argv []string) error {
+func appsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists applications visible to the current user.
 
@@ -119,10 +120,10 @@ Options:
 
 	cf := safeGetValue(args, "--config")
 
-	return cmd.AppsList(cf, results)
+	return cmd.AppsList(cf, results, wOut)
 }
 
-func appInfo(argv []string) error {
+func appInfo(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Prints info about the current application.
 
@@ -142,10 +143,10 @@ Options:
 	app := safeGetValue(args, "--app")
 	cf := safeGetValue(args, "--config")
 
-	return cmd.AppInfo(cf, app)
+	return cmd.AppInfo(cf, app, wOut)
 }
 
-func appOpen(argv []string) error {
+func appOpen(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Opens a URL to the application in the default browser.
 
@@ -165,10 +166,10 @@ Options:
 	app := safeGetValue(args, "--app")
 	cf := safeGetValue(args, "--config")
 
-	return cmd.AppOpen(cf, app)
+	return cmd.AppOpen(cf, app, wOut)
 }
 
-func appLogs(argv []string) error {
+func appLogs(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Retrieves the most recent log events.
 
@@ -203,10 +204,10 @@ Options:
 		}
 	}
 
-	return cmd.AppLogs(cf, app, lines)
+	return cmd.AppLogs(cf, app, lines, wOut)
 }
 
-func appRun(argv []string) error {
+func appRun(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Runs a command inside an ephemeral app container. Default environment is
 /bin/bash.
@@ -232,10 +233,10 @@ Options:
 	cf := safeGetValue(args, "--config")
 	command := strings.Join(args["<command>"].([]string), " ")
 
-	return cmd.AppRun(cf, app, command)
+	return cmd.AppRun(cf, app, command, wOut)
 }
 
-func appDestroy(argv []string) error {
+func appDestroy(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Destroys an application.
 
@@ -259,10 +260,10 @@ Options:
 	confirm := safeGetValue(args, "--confirm")
 	cf := safeGetValue(args, "--config")
 
-	return cmd.AppDestroy(cf, app, confirm)
+	return cmd.AppDestroy(cf, app, confirm, wOut)
 }
 
-func appTransfer(argv []string) error {
+func appTransfer(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Transfer app ownership to another user.
 
@@ -287,5 +288,5 @@ Options:
 	app := safeGetValue(args, "--app")
 	user := safeGetValue(args, "<username>")
 
-	return cmd.AppTransfer(cf, app, user)
+	return cmd.AppTransfer(cf, app, user, wOut)
 }

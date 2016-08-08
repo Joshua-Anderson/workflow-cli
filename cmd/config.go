@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -17,7 +18,7 @@ import (
 )
 
 // ConfigList lists an app's config.
-func ConfigList(cf, appID string, oneLine bool) error {
+func ConfigList(cf, appID string, oneLine bool, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -25,7 +26,7 @@ func ConfigList(cf, appID string, oneLine bool) error {
 	}
 
 	config, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -36,12 +37,16 @@ func ConfigList(cf, appID string, oneLine bool) error {
 	sort.Strings(keys)
 
 	if oneLine {
-		for _, key := range keys {
-			fmt.Printf("%s=%s ", key, config.Values[key])
+		cPs := sortedConfig(config.Values)
+		for i, cP := range cPs {
+			sep := " "
+			if i == len(cPs)-1 {
+				sep = "\n"
+			}
+			fmt.Fprintf(wOut, "%s=%v%s", cP.Key, cP.Value, sep)
 		}
-		fmt.Println()
 	} else {
-		fmt.Printf("=== %s Config\n", appID)
+		fmt.Fprintf(wOut, "=== %s Config\n", appID)
 
 		configMap := make(map[string]string)
 
@@ -50,21 +55,25 @@ func ConfigList(cf, appID string, oneLine bool) error {
 			configMap[key] = fmt.Sprintf("%v", config.Values[key])
 		}
 
-		fmt.Print(prettyprint.PrettyTabs(configMap, 6))
+		fmt.Fprint(wOut, prettyprint.PrettyTabs(configMap, 6))
 	}
 
 	return nil
 }
 
 // ConfigSet sets an app's config variables.
-func ConfigSet(cf, appID string, configVars []string) error {
+func ConfigSet(cf, appID string, configVars []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	configMap := parseConfig(configVars)
+	configMap, err := parseConfig(configVars)
+
+	if err != nil {
+		return err
+	}
 
 	value, ok := configMap["SSH_KEY"]
 
@@ -94,43 +103,38 @@ func ConfigSet(cf, appID string, configVars []string) error {
 	// send them a deprecation notice.
 	for key := range configMap {
 		if strings.Contains(key, "HEALTHCHECK_") {
-			fmt.Println(`Hey there! We've noticed that you're using 'deis config:set HEALTHCHECK_URL'
+			fmt.Fprintln(wOut, `Hey there! We've noticed that you're using 'deis config:set HEALTHCHECK_URL'
 to set up healthchecks. This functionality has been deprecated. In the future, please use
 'deis healthchecks' to set up application health checks. Thanks!`)
 		}
 	}
 
-	fmt.Print("Creating config... ")
+	fmt.Fprint(wOut, "Creating config... ")
 
-	quit := progress()
+	quit := progress(wOut)
 	configObj := api.Config{Values: configMap}
-	configObj, err = config.Set(s.Client, appID, configObj)
+	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
+	fmt.Fprint(wOut, "done\n\n")
 
-	if release, ok := configObj.Values["WORKFLOW_RELEASE"]; ok {
-		fmt.Printf("done, %s\n\n", release)
-	} else {
-		fmt.Print("done\n\n")
-	}
-
-	return ConfigList(cf, appID, false)
+	return ConfigList(cf, appID, false, wOut)
 }
 
 // ConfigUnset removes a config variable from an app.
-func ConfigUnset(cf, appID string, configVars []string) error {
+func ConfigUnset(cf, appID string, configVars []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Removing config... ")
+	fmt.Fprint(wOut, "Removing config... ")
 
-	quit := progress()
+	quit := progress(wOut)
 
 	configObj := api.Config{}
 
@@ -145,17 +149,17 @@ func ConfigUnset(cf, appID string, configVars []string) error {
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return ConfigList(cf, appID, false)
+	return ConfigList(cf, appID, false, wOut)
 }
 
 // ConfigPull pulls an app's config to a file.
-func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
+func ConfigPull(cf, appID string, interactive bool, overwrite bool, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -163,7 +167,7 @@ func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
 	}
 
 	configVars, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -174,7 +178,7 @@ func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
 	}
 
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		fmt.Print(formatConfig(configVars.Values))
+		fmt.Fprint(wOut, formatConfig(configVars.Values))
 		return nil
 	}
 
@@ -194,7 +198,10 @@ func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
 		}
 		localConfigVars := strings.Split(string(contents), "\n")
 
-		configMap := parseConfig(localConfigVars[:len(localConfigVars)-1])
+		configMap, err := parseConfig(localConfigVars[:len(localConfigVars)-1])
+		if err != nil {
+			return err
+		}
 
 		for key, value := range configVars.Values {
 			localValue, ok := configMap[key]
@@ -202,7 +209,7 @@ func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
 			if ok {
 				if value != localValue {
 					var confirm string
-					fmt.Printf("%s: overwrite %s with %s? (y/N) ", key, localValue, value)
+					fmt.Fprintf(wOut, "%s: overwrite %s with %s? (y/N) ", key, localValue, value)
 
 					fmt.Scanln(&confirm)
 
@@ -222,7 +229,7 @@ func ConfigPull(cf, appID string, interactive bool, overwrite bool) error {
 }
 
 // ConfigPush pushes an app's config from a file.
-func ConfigPush(cf, appID, fileName string) error {
+func ConfigPush(cf, appID, fileName string, wOut io.Writer) error {
 	stat, err := os.Stdin.Stat()
 
 	if err != nil {
@@ -252,10 +259,10 @@ func ConfigPush(cf, appID, fileName string) error {
 		}
 	}
 
-	return ConfigSet(cf, appID, config)
+	return ConfigSet(cf, appID, config, wOut)
 }
 
-func parseConfig(configVars []string) map[string]interface{} {
+func parseConfig(configVars []string) (map[string]interface{}, error) {
 	configMap := make(map[string]interface{})
 
 	regex := regexp.MustCompile(`^([A-z_]+[A-z0-9_]*)=([\s\S]+)$`)
@@ -269,19 +276,44 @@ func parseConfig(configVars []string) map[string]interface{} {
 			captures := regex.FindStringSubmatch(config)
 			configMap[captures[1]] = captures[2]
 		} else {
-			fmt.Printf("'%s' does not match the pattern 'key=var', ex: MODE=test\n", config)
-			os.Exit(1)
+			return nil, fmt.Errorf("'%s' does not match the pattern 'key=var', ex: MODE=test\n", config)
 		}
 	}
 
-	return configMap
+	return configMap, nil
+}
+
+// configPair is used for sorting configuration variables by removing them from the
+// unsortible maps.
+type configPair struct {
+	Key   string
+	Value interface{}
+}
+
+type configPairs []configPair
+
+func (cPs configPairs) Len() int           { return len(cPs) }
+func (cPs configPairs) Swap(i, j int)      { cPs[i], cPs[j] = cPs[j], cPs[i] }
+func (cPs configPairs) Less(i, j int) bool { return cPs[i].Key < cPs[j].Key }
+
+func sortedConfig(configVars map[string]interface{}) configPairs {
+	var cPs configPairs
+
+	for key, value := range configVars {
+		cPs = append(cPs, configPair{Key: key, Value: value})
+	}
+
+	sort.Sort(cPs)
+	return cPs
 }
 
 func formatConfig(configVars map[string]interface{}) string {
 	var formattedConfig string
 
-	for key, value := range configVars {
-		formattedConfig += fmt.Sprintf("%s=%s\n", key, value)
+	cPs := sortedConfig(configVars)
+
+	for _, cP := range cPs {
+		formattedConfig += fmt.Sprintf("%s=%v\n", cP.Key, cP.Value)
 	}
 
 	return formattedConfig

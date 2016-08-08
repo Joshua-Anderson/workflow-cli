@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Routing displays all relevant commands for `deis routing`.
-func Routing(argv []string) error {
+func Routing(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for routing:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "routing:info":
-		return routingInfo(argv)
+		return routingInfo(argv, wOut)
 	case "routing:enable":
-		return routingEnable(argv)
+		return routingEnable(argv, wOut)
 	case "routing:disable":
-		return routingDisable(argv)
+		return routingDisable(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "routing" {
 			argv[0] = "routing:info"
-			return routingInfo(argv)
+			return routingInfo(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func routingInfo(argv []string) error {
+func routingInfo(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Prints info about the current application's routability.
 
@@ -56,10 +58,10 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingInfo(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.RoutingInfo(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func routingEnable(argv []string) error {
+func routingEnable(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Enables routability for an app.
 
@@ -76,10 +78,10 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingEnable(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.RoutingEnable(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func routingDisable(argv []string) error {
+func routingDisable(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Disables routability for an app.
 
@@ -96,5 +98,5 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingDisable(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.RoutingDisable(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }

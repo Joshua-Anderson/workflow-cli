@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,11 +16,11 @@ import (
 // main exits with the return value of Command(os.Args[1:]), deferring all logic to
 // a func we can test.
 func main() {
-	os.Exit(Command(os.Args[1:]))
+	os.Exit(Command(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 // Command routes deis commands to their proper parser.
-func Command(argv []string) int {
+func Command(argv []string, wOut io.Writer, wErr io.Writer) int {
 	usage := `
 The Deis command-line client issues API calls to a Deis controller.
 
@@ -78,12 +79,12 @@ Use 'git push deis master' to deploy to an application.
 	_, err := docopt.Parse(usage, []string{command}, false, "", true, false)
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(wErr, err)
 		return 1
 	}
 
 	if len(argv) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: deis <command> [<args>...]")
+		fmt.Fprintln(wErr, "Usage: deis <command> [<args>...]")
 		return 1
 	}
 
@@ -91,53 +92,53 @@ Use 'git push deis master' to deploy to an application.
 	// re-parse it according to their usage strings.
 	switch command {
 	case "apps":
-		err = parser.Apps(argv)
+		err = parser.Apps(argv, wOut, wErr)
 	case "auth":
-		err = parser.Auth(argv)
+		err = parser.Auth(argv, wOut, wErr)
 	case "builds":
-		err = parser.Builds(argv)
+		err = parser.Builds(argv, wOut, wErr)
 	case "certs":
-		err = parser.Certs(argv)
+		err = parser.Certs(argv, wOut, wErr)
 	case "config":
-		err = parser.Config(argv)
+		err = parser.Config(argv, wOut, wErr)
 	case "domains":
-		err = parser.Domains(argv)
+		err = parser.Domains(argv, wOut, wErr)
 	case "git":
-		err = parser.Git(argv)
+		err = parser.Git(argv, wOut, wErr)
 	case "healthchecks":
-		err = parser.Healthchecks(argv)
+		err = parser.Healthchecks(argv, wOut, wErr)
 	case "help":
-		fmt.Print(usage)
+		fmt.Fprint(wOut, usage)
 		return 0
 	case "keys":
-		err = parser.Keys(argv)
+		err = parser.Keys(argv, wOut, wErr)
 	case "limits":
-		err = parser.Limits(argv)
+		err = parser.Limits(argv, wOut, wErr)
 	case "perms":
-		err = parser.Perms(argv)
+		err = parser.Perms(argv, wOut, wErr)
 	case "ps":
-		err = parser.Ps(argv)
+		err = parser.Ps(argv, wOut, wErr)
 	case "registry":
-		err = parser.Registry(argv)
+		err = parser.Registry(argv, wOut, wErr)
 	case "releases":
-		err = parser.Releases(argv)
+		err = parser.Releases(argv, wOut, wErr)
 	case "routing":
-		err = parser.Routing(argv)
+		err = parser.Routing(argv, wOut, wErr)
 	case "shortcuts":
-		err = parser.Shortcuts(argv)
+		err = parser.Shortcuts(argv, wOut, wErr)
 	case "tags":
-		err = parser.Tags(argv)
+		err = parser.Tags(argv, wOut, wErr)
 	case "users":
-		err = parser.Users(argv)
+		err = parser.Users(argv, wOut, wErr)
 	case "version":
-		err = parser.Version(argv)
+		err = parser.Version(argv, wOut)
 	default:
 		env := os.Environ()
 		extCmd := "deis-" + command
 
 		binary, err := exec.LookPath(extCmd)
 		if err != nil {
-			parser.PrintUsage()
+			parser.PrintUsage(wErr)
 			return 1
 		}
 
@@ -153,12 +154,12 @@ Use 'git push deis master' to deploy to an application.
 
 		err = syscall.Exec(binary, cmdArgv, env)
 		if err != nil {
-			parser.PrintUsage()
+			parser.PrintUsage(wErr)
 			return 1
 		}
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(wErr, "Error: %v\n", err)
 		return 1
 	}
 	return 0

@@ -1,6 +1,9 @@
 package parser
 
-import "testing"
+import (
+	"io/ioutil"
+	"testing"
+)
 
 func TestSafeGet(t *testing.T) {
 	t.Parallel()
@@ -56,19 +59,19 @@ func TestPrintHelp(t *testing.T) {
 
 	usage := ""
 
-	if !printHelp([]string{"ps", "--help"}, usage) {
+	if !printHelp([]string{"ps", "--help"}, usage, ioutil.Discard) {
 		t.Error("Expected true")
 	}
 
-	if !printHelp([]string{"ps", "-h"}, usage) {
+	if !printHelp([]string{"ps", "-h"}, usage, ioutil.Discard) {
 		t.Error("Expected true")
 	}
 
-	if printHelp([]string{"ps"}, usage) {
+	if printHelp([]string{"ps"}, usage, ioutil.Discard) {
 		t.Error("Expected false")
 	}
 
-	if printHelp([]string{"ps", "--foo"}, usage) {
+	if printHelp([]string{"ps", "--foo"}, usage, ioutil.Discard) {
 		t.Error("Expected false")
 	}
 }

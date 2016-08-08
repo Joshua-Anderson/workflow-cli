@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 
 	"github.com/deis/pkg/prettyprint"
@@ -11,7 +12,7 @@ import (
 )
 
 // LimitsList lists an app's limits.
-func LimitsList(cf, appID string) error {
+func LimitsList(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -19,15 +20,15 @@ func LimitsList(cf, appID string) error {
 	}
 
 	config, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Limits\n\n", appID)
+	fmt.Fprintf(wOut, "=== %s Limits\n\n", appID)
 
-	fmt.Println("--- Memory")
+	fmt.Fprintln(wOut, "--- Memory")
 	if len(config.Memory) == 0 {
-		fmt.Println("Unlimited")
+		fmt.Fprintln(wOut, "Unlimited")
 	} else {
 		memoryMap := make(map[string]string)
 
@@ -35,12 +36,12 @@ func LimitsList(cf, appID string) error {
 			memoryMap[key] = fmt.Sprintf("%v", value)
 		}
 
-		fmt.Print(prettyprint.PrettyTabs(memoryMap, 5))
+		fmt.Fprint(wOut, prettyprint.PrettyTabs(memoryMap, 5))
 	}
 
-	fmt.Println("\n--- CPU")
+	fmt.Fprintln(wOut, "\n--- CPU")
 	if len(config.CPU) == 0 {
-		fmt.Println("Unlimited")
+		fmt.Fprintln(wOut, "Unlimited")
 	} else {
 		cpuMap := make(map[string]string)
 
@@ -48,14 +49,14 @@ func LimitsList(cf, appID string) error {
 			cpuMap[key] = value.(string)
 		}
 
-		fmt.Print(prettyprint.PrettyTabs(cpuMap, 5))
+		fmt.Fprint(wOut, prettyprint.PrettyTabs(cpuMap, 5))
 	}
 
 	return nil
 }
 
 // LimitsSet sets an app's limits.
-func LimitsSet(cf, appID string, limits []string, limitType string) error {
+func LimitsSet(cf, appID string, limits []string, limitType string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -67,9 +68,9 @@ func LimitsSet(cf, appID string, limits []string, limitType string) error {
 		return err
 	}
 
-	fmt.Print("Applying limits... ")
+	fmt.Fprint(wOut, "Applying limits... ")
 
-	quit := progress()
+	quit := progress(wOut)
 	configObj := api.Config{}
 
 	if limitType == "cpu" {
@@ -81,26 +82,26 @@ func LimitsSet(cf, appID string, limits []string, limitType string) error {
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return LimitsList(cf, appID)
+	return LimitsList(cf, appID, wOut)
 }
 
 // LimitsUnset removes an app's limits.
-func LimitsUnset(cf, appID string, limits []string, limitType string) error {
+func LimitsUnset(cf, appID string, limits []string, limitType string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Applying limits... ")
+	fmt.Fprint(wOut, "Applying limits... ")
 
-	quit := progress()
+	quit := progress(wOut)
 
 	configObj := api.Config{}
 
@@ -119,13 +120,13 @@ func LimitsUnset(cf, appID string, limits []string, limitType string) error {
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return LimitsList(cf, appID)
+	return LimitsList(cf, appID, wOut)
 }
 
 func parseLimits(limits []string) (map[string]interface{}, error) {

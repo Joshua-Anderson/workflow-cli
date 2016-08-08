@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/deis/pkg/prettyprint"
@@ -11,7 +12,7 @@ import (
 )
 
 // RegistryList lists an app's registry information.
-func RegistryList(cf, appID string) error {
+func RegistryList(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -19,11 +20,11 @@ func RegistryList(cf, appID string) error {
 	}
 
 	config, err := config.List(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== %s Registry\n", appID)
+	fmt.Fprintf(wOut, "=== %s Registry\n", appID)
 
 	registryMap := make(map[string]string)
 
@@ -31,50 +32,53 @@ func RegistryList(cf, appID string) error {
 		registryMap[key] = fmt.Sprintf("%v", value)
 	}
 
-	fmt.Print(prettyprint.PrettyTabs(registryMap, 5))
+	fmt.Fprint(wOut, prettyprint.PrettyTabs(registryMap, 5))
 
 	return nil
 }
 
 // RegistrySet sets an app's registry information.
-func RegistrySet(cf, appID string, item []string) error {
+func RegistrySet(cf, appID string, item []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	registryMap := parseInfos(item)
+	registryMap, err := parseInfos(item)
+	if err != nil {
+		return err
+	}
 
-	fmt.Print("Applying registry information... ")
+	fmt.Fprint(wOut, "Applying registry information... ")
 
-	quit := progress()
+	quit := progress(wOut)
 	configObj := api.Config{}
 	configObj.Registry = registryMap
 
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return RegistryList(cf, appID)
+	return RegistryList(cf, appID, wOut)
 }
 
 // RegistryUnset removes an app's registry information.
-func RegistryUnset(cf, appID string, items []string) error {
+func RegistryUnset(cf, appID string, items []string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Applying registry information... ")
+	fmt.Fprint(wOut, "Applying registry information... ")
 
-	quit := progress()
+	quit := progress(wOut)
 
 	configObj := api.Config{}
 
@@ -89,30 +93,29 @@ func RegistryUnset(cf, appID string, items []string) error {
 	_, err = config.Set(s.Client, appID, configObj)
 	quit <- true
 	<-quit
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Print("done\n\n")
+	fmt.Fprint(wOut, "done\n\n")
 
-	return RegistryList(cf, appID)
+	return RegistryList(cf, appID, wOut)
 }
 
-func parseInfos(items []string) map[string]interface{} {
+func parseInfos(items []string) (map[string]interface{}, error) {
 	registryMap := make(map[string]interface{})
 
 	for _, item := range items {
 		key, value, err := parseInfo(item)
 
 		if err != nil {
-			fmt.Println(err)
-			continue
+			return nil, err
 		}
 
 		registryMap[key] = value
 	}
 
-	return registryMap
+	return registryMap, nil
 }
 
 func parseInfo(item string) (string, string, error) {

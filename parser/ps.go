@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Ps routes ps commands to their specific function.
-func Ps(argv []string) error {
+func Ps(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for processes:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "ps:list":
-		return psList(argv)
+		return psList(argv, wOut)
 	case "ps:restart":
-		return psRestart(argv)
+		return psRestart(argv, wOut)
 	case "ps:scale":
-		return psScale(argv)
+		return psScale(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "ps" {
 			argv[0] = "ps:list"
-			return psList(argv)
+			return psList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func psList(argv []string) error {
+func psList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists processes servicing an application.
 
@@ -56,10 +58,10 @@ Options:
 	}
 
 	// The 1000 is fake for now until API understands limits
-	return cmd.PsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), 1000)
+	return cmd.PsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), 1000, wOut)
 }
 
-func psRestart(argv []string) error {
+func psRestart(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Restart an application, a process type or a specific process.
 
@@ -84,10 +86,10 @@ Options:
 	cf := safeGetValue(args, "--config")
 	apps := safeGetValue(args, "--app")
 	tp := safeGetValue(args, "<type>")
-	return cmd.PsRestart(cf, apps, tp)
+	return cmd.PsRestart(cf, apps, tp, wOut)
 }
 
-func psScale(argv []string) error {
+func psScale(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Scales an application's processes by type.
 
@@ -113,5 +115,5 @@ Options:
 
 	cf := safeGetValue(args, "--config")
 	apps := safeGetValue(args, "--app")
-	return cmd.PsScale(cf, apps, args["<type>=<num>"].([]string))
+	return cmd.PsScale(cf, apps, args["<type>=<num>"].([]string), wOut)
 }

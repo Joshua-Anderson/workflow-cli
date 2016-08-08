@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -17,24 +18,24 @@ import (
 )
 
 // AppCreate creates an app.
-func AppCreate(cf, id, buildpack, remote string, noRemote bool) error {
+func AppCreate(cf, id, buildpack, remote string, noRemote bool, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Creating Application... ")
-	quit := progress()
+	fmt.Fprint(wOut, "Creating Application... ")
+	quit := progress(wOut)
 	app, err := apps.New(s.Client, id)
 
 	quit <- true
 	<-quit
 
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("done, created %s\n", app.ID)
+	fmt.Fprintf(wOut, "done, created %s\n", app.ID)
 
 	if buildpack != "" {
 		configValues := api.Config{
@@ -42,7 +43,7 @@ func AppCreate(cf, id, buildpack, remote string, noRemote bool) error {
 				"BUILDPACK_URL": buildpack,
 			},
 		}
-		if _, err = config.Set(s.Client, app.ID, configValues); checkAPICompatibility(s.Client, err) != nil {
+		if _, err = config.Set(s.Client, app.ID, configValues); checkAPICompatibility(s.Client, err, wOut) != nil {
 			return err
 		}
 	}
@@ -57,18 +58,18 @@ func AppCreate(cf, id, buildpack, remote string, noRemote bool) error {
 			return err
 		}
 
-		fmt.Printf(remoteCreationMsg, remote, app.ID)
+		fmt.Fprintf(wOut, remoteCreationMsg, remote, app.ID)
 	}
 
 	if noRemote {
-		fmt.Printf("If you want to add a git remote for this app later, use `deis git:remote -a %s`\n", app.ID)
+		fmt.Fprintf(wOut, "If you want to add a git remote for this app later, use `deis git:remote -a %s`\n", app.ID)
 	}
 
 	return nil
 }
 
 // AppsList lists apps on the Deis controller.
-func AppsList(cf string, results int) error {
+func AppsList(cf string, results int, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -80,20 +81,20 @@ func AppsList(cf string, results int) error {
 	}
 
 	apps, count, err := apps.List(s.Client, results)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("=== Apps%s", limitCount(len(apps), count))
+	fmt.Fprintf(wOut, "=== Apps%s", limitCount(len(apps), count))
 
 	for _, app := range apps {
-		fmt.Println(app.ID)
+		fmt.Fprintln(wOut, app.ID)
 	}
 	return nil
 }
 
 // AppInfo prints info about app.
-func AppInfo(cf, appID string) error {
+func AppInfo(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -101,11 +102,11 @@ func AppInfo(cf, appID string) error {
 	}
 
 	app, err := apps.Get(s.Client, appID)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	url, err := appURL(s, appID)
+	url, err := appURL(s, appID, wOut)
 	if err != nil {
 		return err
 	}
@@ -114,40 +115,40 @@ func AppInfo(cf, appID string) error {
 		url = fmt.Sprintf(noDomainAssignedMsg, appID)
 	}
 
-	fmt.Printf("=== %s Application\n", app.ID)
-	fmt.Println("updated: ", app.Updated)
-	fmt.Println("uuid:    ", app.UUID)
-	fmt.Println("created: ", app.Created)
-	fmt.Println("url:     ", url)
-	fmt.Println("owner:   ", app.Owner)
-	fmt.Println("id:      ", app.ID)
+	fmt.Fprintf(wOut, "=== %s Application\n", app.ID)
+	fmt.Fprintln(wOut, "updated: ", app.Updated)
+	fmt.Fprintln(wOut, "uuid:    ", app.UUID)
+	fmt.Fprintln(wOut, "created: ", app.Created)
+	fmt.Fprintln(wOut, "url:     ", url)
+	fmt.Fprintln(wOut, "owner:   ", app.Owner)
+	fmt.Fprintln(wOut, "id:      ", app.ID)
 
-	fmt.Println()
+	fmt.Fprintln(wOut)
 	// print the app processes
-	if err = PsList(cf, app.ID, defaultLimit); err != nil {
+	if err = PsList(cf, app.ID, defaultLimit, wOut); err != nil {
 		return err
 	}
 
-	fmt.Println()
+	fmt.Fprintln(wOut)
 	// print the app domains
-	if err = DomainsList(cf, app.ID, defaultLimit); err != nil {
+	if err = DomainsList(cf, app.ID, defaultLimit, wOut); err != nil {
 		return err
 	}
 
-	fmt.Println()
+	fmt.Fprintln(wOut)
 
 	return nil
 }
 
 // AppOpen opens an app in the default webbrowser.
-func AppOpen(cf, appID string) error {
+func AppOpen(cf, appID string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	u, err := appURL(s, appID)
+	u, err := appURL(s, appID, wOut)
 	if err != nil {
 		return err
 	}
@@ -164,7 +165,7 @@ func AppOpen(cf, appID string) error {
 }
 
 // AppLogs returns the logs from an app.
-func AppLogs(cf, appID string, lines int) error {
+func AppLogs(cf, appID string, lines int, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
@@ -172,7 +173,7 @@ func AppLogs(cf, appID string, lines int) error {
 	}
 
 	logs, err := apps.Logs(s.Client, appID, lines)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -184,22 +185,22 @@ func AppLogs(cf, appID string, lines int) error {
 }
 
 // AppRun runs a one time command in the app.
-func AppRun(cf, appID, command string) error {
+func AppRun(cf, appID, command string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Running '%s'...\n", command)
+	fmt.Fprintf(wOut, "Running '%s'...\n", command)
 
 	out, err := apps.Run(s.Client, appID, command)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
 	if out.ReturnCode == 0 {
-		fmt.Print(out.Output)
+		fmt.Fprint(wOut, out.Output)
 	} else {
 		fmt.Fprint(os.Stderr, out.Output)
 	}
@@ -209,7 +210,7 @@ func AppRun(cf, appID, command string) error {
 }
 
 // AppDestroy destroys an app.
-func AppDestroy(cf, appID, confirm string) error {
+func AppDestroy(cf, appID, confirm string, wOut io.Writer) error {
 	gitSession := false
 
 	s, err := settings.Load(cf)
@@ -229,7 +230,7 @@ func AppDestroy(cf, appID, confirm string) error {
 	}
 
 	if confirm == "" {
-		fmt.Printf(` !    WARNING: Potentially Destructive Action
+		fmt.Fprintf(wOut, ` !    WARNING: Potentially Destructive Action
  !    This command will destroy the application: %s
  !    To proceed, type "%s" or re-run this command with --confirm=%s
 
@@ -243,37 +244,37 @@ func AppDestroy(cf, appID, confirm string) error {
 	}
 
 	startTime := time.Now()
-	fmt.Printf("Destroying %s...\n", appID)
+	fmt.Fprintf(wOut, "Destroying %s...\n", appID)
 
-	if err = apps.Delete(s.Client, appID); checkAPICompatibility(s.Client, err) != nil {
+	if err = apps.Delete(s.Client, appID); checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Printf("done in %ds\n", int(time.Since(startTime).Seconds()))
+	fmt.Fprintf(wOut, "done in %ds\n", int(time.Since(startTime).Seconds()))
 
 	if gitSession {
-		return GitRemove(cf, appID)
+		return GitRemove(cf, appID, wOut)
 	}
 
 	return nil
 }
 
 // AppTransfer transfers app ownership to another user.
-func AppTransfer(cf, appID, username string) error {
+func AppTransfer(cf, appID, username string, wOut io.Writer) error {
 	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Transferring %s to %s... ", appID, username)
+	fmt.Fprintf(wOut, "Transferring %s to %s... ", appID, username)
 
 	err = apps.Transfer(s.Client, appID, username)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
-	fmt.Println("done")
+	fmt.Fprintln(wOut, "done")
 
 	return nil
 }
@@ -281,9 +282,9 @@ func AppTransfer(cf, appID, username string) error {
 const noDomainAssignedMsg = "No domain assigned to %s"
 
 // appURL grabs the first domain an app has and returns this.
-func appURL(s *settings.Settings, appID string) (string, error) {
+func appURL(s *settings.Settings, appID string, wOut io.Writer) (string, error) {
 	domains, _, err := domains.List(s.Client, appID, 1)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return "", err
 	}
 

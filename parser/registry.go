@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Registry routes registry commands to their specific function
-func Registry(argv []string) error {
+func Registry(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for registry:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "registry:list":
-		return registryList(argv)
+		return registryList(argv, wOut)
 	case "registry:set":
-		return registrySet(argv)
+		return registrySet(argv, wOut)
 	case "registry:unset":
-		return registryUnset(argv)
+		return registryUnset(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "registry" {
 			argv[0] = "registry:list"
-			return registryList(argv)
+			return registryList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func registryList(argv []string) error {
+func registryList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists registry information for an application.
 
@@ -56,10 +58,10 @@ Options:
 		return err
 	}
 
-	return cmd.RegistryList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.RegistryList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func registrySet(argv []string) error {
+func registrySet(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Sets registry information for an application. These credentials are the same as those used for
 'docker login' to the private registry.
@@ -88,10 +90,10 @@ Options:
 	app := safeGetValue(args, "--app")
 	info := args["<key>=<value>"].([]string)
 
-	return cmd.RegistrySet(cf, app, info)
+	return cmd.RegistrySet(cf, app, info, wOut)
 }
 
-func registryUnset(argv []string) error {
+func registryUnset(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Unsets registry information for an application.
 
@@ -115,5 +117,5 @@ Options:
 	app := safeGetValue(args, "--app")
 	key := args["<key>"].([]string)
 
-	return cmd.RegistryUnset(cf, app, key)
+	return cmd.RegistryUnset(cf, app, key, wOut)
 }

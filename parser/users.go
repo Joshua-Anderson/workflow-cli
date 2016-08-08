@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Users routes user commands to the specific function.
-func Users(argv []string) error {
+func Users(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for users:
 
@@ -17,23 +19,23 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "users:list":
-		return usersList(argv)
+		return usersList(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "users" {
 			argv[0] = "users:list"
-			return usersList(argv)
+			return usersList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func usersList(argv []string) error {
+func usersList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists all registered users.
 Requires admin privilages.
@@ -57,5 +59,5 @@ Options:
 		return err
 	}
 
-	return cmd.UsersList(safeGetValue(args, "--config"), results)
+	return cmd.UsersList(safeGetValue(args, "--config"), results, wOut)
 }

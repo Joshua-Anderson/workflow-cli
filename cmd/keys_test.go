@@ -151,7 +151,7 @@ func TestChooseKey(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		_, err := chooseKey(testKeys, check.Reader)
+		_, err := chooseKey(testKeys, check.Reader, ioutil.Discard)
 
 		if err.Error() != check.Expected {
 			t.Errorf("Expected %s, Got %s", check.Expected, err.Error())

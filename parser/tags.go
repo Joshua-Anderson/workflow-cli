@@ -1,12 +1,14 @@
 package parser
 
 import (
+	"io"
+
 	"github.com/deis/workflow-cli/cmd"
 	docopt "github.com/docopt/docopt-go"
 )
 
 // Tags routes tags commands to their specific function
-func Tags(argv []string) error {
+func Tags(argv []string, wOut io.Writer, wErr io.Writer) error {
 	usage := `
 Valid commands for tags:
 
@@ -19,27 +21,27 @@ Use 'deis help [command]' to learn more.
 
 	switch argv[0] {
 	case "tags:list":
-		return tagsList(argv)
+		return tagsList(argv, wOut)
 	case "tags:set":
-		return tagsSet(argv)
+		return tagsSet(argv, wOut)
 	case "tags:unset":
-		return tagsUnset(argv)
+		return tagsUnset(argv, wOut)
 	default:
-		if printHelp(argv, usage) {
+		if printHelp(argv, usage, wOut) {
 			return nil
 		}
 
 		if argv[0] == "tags" {
 			argv[0] = "tags:list"
-			return tagsList(argv)
+			return tagsList(argv, wOut)
 		}
 
-		PrintUsage()
+		PrintUsage(wErr)
 		return nil
 	}
 }
 
-func tagsList(argv []string) error {
+func tagsList(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Lists tags for an application.
 
@@ -56,10 +58,10 @@ Options:
 		return err
 	}
 
-	return cmd.TagsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
+	return cmd.TagsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), wOut)
 }
 
-func tagsSet(argv []string) error {
+func tagsSet(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Sets tags for an application.
 
@@ -88,10 +90,10 @@ Options:
 	app := safeGetValue(args, "--app")
 	tags := args["<key>=<value>"].([]string)
 
-	return cmd.TagsSet(cf, app, tags)
+	return cmd.TagsSet(cf, app, tags, wOut)
 }
 
-func tagsUnset(argv []string) error {
+func tagsUnset(argv []string, wOut io.Writer) error {
 	usage := addGlobalFlags(`
 Unsets tags for an application.
 
@@ -115,5 +117,5 @@ Options:
 	app := safeGetValue(args, "--app")
 	tags := args["<key>"].([]string)
 
-	return cmd.TagsUnset(cf, app, tags)
+	return cmd.TagsUnset(cf, app, tags, wOut)
 }

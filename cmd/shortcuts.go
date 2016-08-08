@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/deis/workflow-cli/cli"
 )
 
 // ShortcutsList displays all relevant shortcuts for the CLI.
-func ShortcutsList() error {
-	fmt.Println(sortShortcuts())
+func ShortcutsList(wOut io.Writer) error {
+	fmt.Fprintln(wOut, sortShortcuts())
 
 	return nil
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"syscall"
@@ -15,7 +16,7 @@ import (
 
 // Register creates a account on a Deis controller.
 func Register(cf string, controller string, username string, password string, email string,
-	sslVerify bool) error {
+	sslVerify bool, wOut io.Writer) error {
 
 	c, err := deis.New(sslVerify, controller, "")
 
@@ -32,21 +33,21 @@ func Register(cf string, controller string, username string, password string, em
 	// Set user agent for temporary client.
 	c.UserAgent = settings.UserAgent
 
-	if err = c.CheckConnection(); checkAPICompatibility(c, err) != nil {
+	if err = c.CheckConnection(); checkAPICompatibility(c, err, wOut) != nil {
 		return err
 	}
 
 	if username == "" {
-		fmt.Print("username: ")
+		fmt.Fprint(wOut, "username: ")
 		fmt.Scanln(&username)
 	}
 
 	if password == "" {
-		fmt.Print("password: ")
+		fmt.Fprint(wOut, "password: ")
 		password, err = readPassword()
-		fmt.Printf("\npassword (confirm): ")
+		fmt.Fprintf(wOut, "\npassword (confirm): ")
 		passwordConfirm, err := readPassword()
-		fmt.Println()
+		fmt.Fprintln(wOut)
 
 		if err != nil {
 			return err
@@ -58,7 +59,7 @@ func Register(cf string, controller string, username string, password string, em
 	}
 
 	if email == "" {
-		fmt.Print("email: ")
+		fmt.Fprint(wOut, "email: ")
 		fmt.Scanln(&email)
 	}
 
@@ -66,20 +67,20 @@ func Register(cf string, controller string, username string, password string, em
 
 	c.Token = ""
 
-	if checkAPICompatibility(c, err) != nil {
+	if checkAPICompatibility(c, err, wOut) != nil {
 		fmt.Fprint(os.Stderr, "Registration failed: ")
 		return err
 	}
 
-	fmt.Printf("Registered %s\n", username)
+	fmt.Fprintf(wOut, "Registered %s\n", username)
 
 	s := settings.Settings{Client: c}
-	return doLogin(cf, s, username, password)
+	return doLogin(cf, s, username, password, wOut)
 }
 
-func doLogin(cf string, s settings.Settings, username, password string) error {
+func doLogin(cf string, s settings.Settings, username, password string, wOut io.Writer) error {
 	token, err := auth.Login(s.Client, username, password)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -92,13 +93,14 @@ func doLogin(cf string, s settings.Settings, username, password string) error {
 		return nil
 	}
 
-	fmt.Printf("Logged in as %s\n", username)
-	fmt.Printf("Configuration file written to %s\n", filename)
+	fmt.Fprintf(wOut, "Logged in as %s\n", username)
+	fmt.Fprintf(wOut, "Configuration file written to %s\n", filename)
 	return nil
 }
 
 // Login to a Deis controller.
-func Login(cf string, controller string, username string, password string, sslVerify bool) error {
+func Login(cf string, controller string, username string, password string, sslVerify bool,
+	wOut io.Writer) error {
 	c, err := deis.New(sslVerify, controller, "")
 
 	if err != nil {
@@ -108,19 +110,19 @@ func Login(cf string, controller string, username string, password string, sslVe
 	// Set user agent for temporary client.
 	c.UserAgent = settings.UserAgent
 
-	if err = c.CheckConnection(); checkAPICompatibility(c, err) != nil {
+	if err = c.CheckConnection(); checkAPICompatibility(c, err, wOut) != nil {
 		return err
 	}
 
 	if username == "" {
-		fmt.Print("username: ")
+		fmt.Fprint(wOut, "username: ")
 		fmt.Scanln(&username)
 	}
 
 	if password == "" {
-		fmt.Print("password: ")
+		fmt.Fprint(wOut, "password: ")
 		password, err = readPassword()
-		fmt.Println()
+		fmt.Fprintln(wOut)
 
 		if err != nil {
 			return err
@@ -128,21 +130,21 @@ func Login(cf string, controller string, username string, password string, sslVe
 	}
 
 	s := settings.Settings{Client: c}
-	return doLogin(cf, s, username, password)
+	return doLogin(cf, s, username, password, wOut)
 }
 
 // Logout from a Deis controller.
-func Logout(cf string) error {
+func Logout(cf string, wOut io.Writer) error {
 	if err := settings.Delete(cf); err != nil {
 		return err
 	}
 
-	fmt.Println("Logged out")
+	fmt.Fprintln(wOut, "Logged out")
 	return nil
 }
 
 // Passwd changes a user's password.
-func Passwd(cf, username, password, newPassword string) error {
+func Passwd(cf, username, password, newPassword string, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -150,9 +152,9 @@ func Passwd(cf, username, password, newPassword string) error {
 	}
 
 	if password == "" && username == "" {
-		fmt.Print("current password: ")
+		fmt.Fprint(wOut, "current password: ")
 		password, err = readPassword()
-		fmt.Println()
+		fmt.Fprintln(wOut)
 
 		if err != nil {
 			return err
@@ -160,12 +162,12 @@ func Passwd(cf, username, password, newPassword string) error {
 	}
 
 	if newPassword == "" {
-		fmt.Print("new password: ")
+		fmt.Fprint(wOut, "new password: ")
 		newPassword, err = readPassword()
-		fmt.Printf("\nnew password (confirm): ")
+		fmt.Fprintf(wOut, "\nnew password (confirm): ")
 		passwordConfirm, err := readPassword()
 
-		fmt.Println()
+		fmt.Fprintln(wOut)
 
 		if err != nil {
 			return err
@@ -177,17 +179,17 @@ func Passwd(cf, username, password, newPassword string) error {
 	}
 
 	err = auth.Passwd(s.Client, username, password, newPassword)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		fmt.Fprint(os.Stderr, "Password change failed: ")
 		return err
 	}
 
-	fmt.Println("Password change succeeded.")
+	fmt.Fprintln(wOut, "Password change succeeded.")
 	return nil
 }
 
 // Cancel deletes a user's account.
-func Cancel(cf, username, password string, yes bool) error {
+func Cancel(cf, username, password string, yes bool, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -195,9 +197,9 @@ func Cancel(cf, username, password string, yes bool) error {
 	}
 
 	if username == "" || password != "" {
-		fmt.Println("Please log in again in order to cancel this account")
+		fmt.Fprintln(wOut, "Please log in again in order to cancel this account")
 
-		if err = Login(cf, s.Client.ControllerURL.String(), username, password, s.Client.VerifySSL); err != nil {
+		if err = Login(cf, s.Client.ControllerURL.String(), username, password, s.Client.VerifySSL, wOut); err != nil {
 			return err
 		}
 	}
@@ -217,7 +219,7 @@ func Cancel(cf, username, password string, yes bool) error {
 			deletedUser = s.Username
 		}
 
-		fmt.Printf("cancel account %s at %s? (y/N): ", deletedUser, s.Client.ControllerURL.String())
+		fmt.Fprintf(wOut, "cancel account %s at %s? (y/N): ", deletedUser, s.Client.ControllerURL.String())
 		fmt.Scanln(&confirm)
 
 		if strings.ToLower(confirm) == "y" {
@@ -233,7 +235,7 @@ func Cancel(cf, username, password string, yes bool) error {
 	err = auth.Delete(s.Client, username)
 	if err == deis.ErrConflict {
 		return fmt.Errorf("%s still has applications associated with it. Transfer ownership or delete them first", username)
-	} else if checkAPICompatibility(s.Client, err) != nil {
+	} else if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -244,13 +246,13 @@ func Cancel(cf, username, password string, yes bool) error {
 		}
 	}
 
-	fmt.Println("Account cancelled")
+	fmt.Fprintln(wOut, "Account cancelled")
 	return nil
 }
 
 // Whoami prints the logged in user. If all is true, it fetches info from the controller to know
 // more about the user.
-func Whoami(cf string, all bool) error {
+func Whoami(cf string, all bool, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -262,15 +264,15 @@ func Whoami(cf string, all bool) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(user)
+		fmt.Fprintln(wOut, user)
 	} else {
-		fmt.Printf("You are %s at %s\n", s.Username, s.Client.ControllerURL.String())
+		fmt.Fprintf(wOut, "You are %s at %s\n", s.Username, s.Client.ControllerURL.String())
 	}
 	return nil
 }
 
 // Regenerate regenenerates a user's token.
-func Regenerate(cf string, username string, all bool) error {
+func Regenerate(cf string, username string, all bool, wOut io.Writer) error {
 	s, err := settings.Load(cf)
 
 	if err != nil {
@@ -278,7 +280,7 @@ func Regenerate(cf string, username string, all bool) error {
 	}
 
 	token, err := auth.Regenerate(s.Client, username, all)
-	if checkAPICompatibility(s.Client, err) != nil {
+	if checkAPICompatibility(s.Client, err, wOut) != nil {
 		return err
 	}
 
@@ -291,7 +293,7 @@ func Regenerate(cf string, username string, all bool) error {
 		}
 	}
 
-	fmt.Println("Token Regenerated")
+	fmt.Fprintln(wOut, "Token Regenerated")
 	return nil
 }
 
