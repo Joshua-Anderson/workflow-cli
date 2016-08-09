@@ -8,8 +8,8 @@ import (
 )
 
 // HealthchecksList lists an app's healthchecks.
-func HealthchecksList(appID string) error {
-	s, appID, err := load(appID)
+func HealthchecksList(cf, appID string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -40,8 +40,8 @@ func HealthchecksList(appID string) error {
 }
 
 // HealthchecksSet sets an app's healthchecks.
-func HealthchecksSet(appID, healthcheckType string, probe *api.Healthcheck) error {
-	s, appID, err := load(appID)
+func HealthchecksSet(cf, appID, healthcheckType string, probe *api.Healthcheck) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -66,12 +66,12 @@ func HealthchecksSet(appID, healthcheckType string, probe *api.Healthcheck) erro
 
 	fmt.Print("done\n\n")
 
-	return HealthchecksList(appID)
+	return HealthchecksList(cf, appID)
 }
 
 // HealthchecksUnset removes an app's healthchecks.
-func HealthchecksUnset(appID string, healthchecks []string) error {
-	s, appID, err := load(appID)
+func HealthchecksUnset(cf, appID string, healthchecks []string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -102,5 +102,5 @@ func HealthchecksUnset(appID string, healthchecks []string) error {
 
 	fmt.Print("done\n\n")
 
-	return HealthchecksList(appID)
+	return HealthchecksList(cf, appID)
 }

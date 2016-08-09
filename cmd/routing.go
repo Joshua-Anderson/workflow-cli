@@ -7,8 +7,9 @@ import (
 	"github.com/deis/controller-sdk-go/config"
 )
 
-func RoutingInfo(appID string) error {
-	s, appID, err := load(appID)
+// RoutingInfo provides information about the status of app routing.
+func RoutingInfo(cf, appID string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -28,8 +29,8 @@ func RoutingInfo(appID string) error {
 }
 
 // RoutingEnable enables an app from being exposed by the router.
-func RoutingEnable(appID string) error {
-	s, appID, err := load(appID)
+func RoutingEnable(cf, appID string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -52,8 +53,8 @@ func RoutingEnable(appID string) error {
 }
 
 // RoutingDisable disables an app from being exposed by the router.
-func RoutingDisable(appID string) error {
-	s, appID, err := load(appID)
+func RoutingDisable(cf, appID string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err

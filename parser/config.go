@@ -46,7 +46,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func configList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists environment variables for an application.
 
 Usage: deis config:list [options]
@@ -56,7 +56,7 @@ Options:
     print output on one line.
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -64,11 +64,15 @@ Options:
 		return err
 	}
 
-	return cmd.ConfigList(safeGetValue(args, "--app"), args["--oneline"].(bool))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	oneline := args["--oneline"].(bool)
+
+	return cmd.ConfigList(cf, app, oneline)
 }
 
 func configSet(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets environment variables for an application.
 
 Usage: deis config:set <var>=<value> [<var>=<value>...] [options]
@@ -82,7 +86,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -90,11 +94,14 @@ Options:
 		return err
 	}
 
-	return cmd.ConfigSet(safeGetValue(args, "--app"), args["<var>=<value>"].([]string))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.ConfigSet(cf, app, args["<var>=<value>"].([]string))
 }
 
 func configUnset(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unsets an environment variable for an application.
 
 Usage: deis config:unset <key>... [options]
@@ -106,7 +113,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -114,11 +121,14 @@ Options:
 		return err
 	}
 
-	return cmd.ConfigUnset(safeGetValue(args, "--app"), args["<key>"].([]string))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.ConfigUnset(cf, app, args["<key>"].([]string))
 }
 
 func configPull(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Extract all environment variables from an application for local use.
 
 The environmental variables can be piped into a file, 'deis config:pull > file',
@@ -134,7 +144,7 @@ Options:
     Prompts for each value to be overwritten
   -o --overwrite
     Allows you to have the pull overwrite keys in .env
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -145,12 +155,13 @@ Options:
 	app := safeGetValue(args, "--app")
 	interactive := args["--interactive"].(bool)
 	overwrite := args["--overwrite"].(bool)
+	cf := safeGetValue(args, "--config")
 
-	return cmd.ConfigPull(app, interactive, overwrite)
+	return cmd.ConfigPull(cf, app, interactive, overwrite)
 }
 
 func configPush(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets environment variables for an application.
 
 This file can be read by foreman
@@ -164,7 +175,7 @@ Options:
     the uniquely identifiable name for the application.
   -p <path>, --path=<path>
     a path leading to an environment file [default: .env]
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -172,5 +183,9 @@ Options:
 		return err
 	}
 
-	return cmd.ConfigPush(safeGetValue(args, "--app"), safeGetValue(args, "--path"))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	path := safeGetValue(args, "--path")
+
+	return cmd.ConfigPush(cf, app, path)
 }

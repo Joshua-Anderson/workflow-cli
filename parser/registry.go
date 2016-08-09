@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func registryList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists registry information for an application.
 
 Usage: deis registry:list [options]
@@ -48,7 +48,7 @@ Usage: deis registry:list [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -56,11 +56,11 @@ Options:
 		return err
 	}
 
-	return cmd.RegistryList(safeGetValue(args, "--app"))
+	return cmd.RegistryList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func registrySet(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets registry information for an application. These credentials are the same as those used for
 'docker login' to the private registry.
 
@@ -76,7 +76,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -84,14 +84,15 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	info := args["<key>=<value>"].([]string)
 
-	return cmd.RegistrySet(app, info)
+	return cmd.RegistrySet(cf, app, info)
 }
 
 func registryUnset(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unsets registry information for an application.
 
 Usage: deis registry:unset [options] <key>...
@@ -102,7 +103,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -110,8 +111,9 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	key := args["<key>"].([]string)
 
-	return cmd.RegistryUnset(app, key)
+	return cmd.RegistryUnset(cf, app, key)
 }

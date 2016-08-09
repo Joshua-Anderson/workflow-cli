@@ -49,7 +49,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func certsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Show certificate information for an SSL application.
 
 Usage: deis certs:list [options]
@@ -57,7 +57,7 @@ Usage: deis certs:list [options]
 Options:
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
@@ -69,11 +69,11 @@ Options:
 		return err
 	}
 
-	return cmd.CertsList(results)
+	return cmd.CertsList(safeGetValue(args, "--config"), results)
 }
 
 func certAdd(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Binds a certificate/key pair to an application.
 
 Usage: deis certs:add <name> <cert> <key> [options]
@@ -85,7 +85,9 @@ Arguments:
     The public key of the SSL certificate.
   <key>
     The private key of the SSL certificate.
-`
+
+Options:
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
@@ -95,12 +97,13 @@ Arguments:
 	name := args["<name>"].(string)
 	cert := args["<cert>"].(string)
 	key := args["<key>"].(string)
+	cf := safeGetValue(args, "--config")
 
-	return cmd.CertAdd(cert, key, name)
+	return cmd.CertAdd(cf, cert, key, name)
 }
 
 func certRemove(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 removes a certificate/key pair from the application.
 
 Usage: deis certs:remove <name> [options]
@@ -108,18 +111,20 @@ Usage: deis certs:remove <name> [options]
 Arguments:
   <name>
     the name of the cert to remove from the app.
-`
+
+Options:
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
 		return err
 	}
 
-	return cmd.CertRemove(safeGetValue(args, "<name>"))
+	return cmd.CertRemove(safeGetValue(args, "--config"), safeGetValue(args, "<name>"))
 }
 
 func certInfo(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 fetch more detailed information about a certificate
 
 Usage: deis certs:info <name> [options]
@@ -127,18 +132,20 @@ Usage: deis certs:info <name> [options]
 Arguments:
   <name>
     the name of the cert to get information from
-`
+
+Options:
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
 		return err
 	}
 
-	return cmd.CertInfo(safeGetValue(args, "<name>"))
+	return cmd.CertInfo(safeGetValue(args, "--config"), safeGetValue(args, "<name>"))
 }
 
 func certAttach(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 attach a certificate to a domain.
 
 Usage: deis certs:attach <name> <domain> [options]
@@ -148,7 +155,9 @@ Arguments:
     name of the certificate to attach domain to
   <domain>
     common name of the domain to attach to (needs to already be in the system)
-`
+
+Options:
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
@@ -157,11 +166,12 @@ Arguments:
 
 	name := safeGetValue(args, "<name>")
 	domain := safeGetValue(args, "<domain>")
-	return cmd.CertAttach(name, domain)
+	cf := safeGetValue(args, "--config")
+	return cmd.CertAttach(cf, name, domain)
 }
 
 func certDetach(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 detach a certificate from a domain.
 
 Usage: deis certs:detach <name> <domain> [options]
@@ -171,7 +181,9 @@ Arguments:
     name of the certificate to deatch from a domain
   <domain>
     common name of the domain to detach from
-`
+
+Options:
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
@@ -180,5 +192,6 @@ Arguments:
 
 	name := safeGetValue(args, "<name>")
 	domain := safeGetValue(args, "<domain>")
-	return cmd.CertDetach(name, domain)
+	cf := safeGetValue(args, "--config")
+	return cmd.CertDetach(cf, name, domain)
 }

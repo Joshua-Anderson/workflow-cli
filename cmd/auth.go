@@ -14,7 +14,7 @@ import (
 )
 
 // Register creates a account on a Deis controller.
-func Register(controller string, username string, password string, email string,
+func Register(cf string, controller string, username string, password string, email string,
 	sslVerify bool) error {
 
 	c, err := deis.New(sslVerify, controller, "")
@@ -23,7 +23,7 @@ func Register(controller string, username string, password string, email string,
 		return err
 	}
 
-	tempSettings, err := settings.Load()
+	tempSettings, err := settings.Load(cf)
 
 	if err == nil && tempSettings.Client.ControllerURL.Host == c.ControllerURL.Host {
 		c.Token = tempSettings.Client.Token
@@ -74,10 +74,10 @@ func Register(controller string, username string, password string, email string,
 	fmt.Printf("Registered %s\n", username)
 
 	s := settings.Settings{Client: c}
-	return doLogin(s, username, password)
+	return doLogin(cf, s, username, password)
 }
 
-func doLogin(s settings.Settings, username, password string) error {
+func doLogin(cf string, s settings.Settings, username, password string) error {
 	token, err := auth.Login(s.Client, username, password)
 	if checkAPICompatibility(s.Client, err) != nil {
 		return err
@@ -86,18 +86,19 @@ func doLogin(s settings.Settings, username, password string) error {
 	s.Client.Token = token
 	s.Username = username
 
-	err = s.Save()
+	filename, err := s.Save(cf)
 
 	if err != nil {
 		return nil
 	}
 
 	fmt.Printf("Logged in as %s\n", username)
+	fmt.Printf("Configuration file written to %s\n", filename)
 	return nil
 }
 
 // Login to a Deis controller.
-func Login(controller string, username string, password string, sslVerify bool) error {
+func Login(cf string, controller string, username string, password string, sslVerify bool) error {
 	c, err := deis.New(sslVerify, controller, "")
 
 	if err != nil {
@@ -127,12 +128,12 @@ func Login(controller string, username string, password string, sslVerify bool) 
 	}
 
 	s := settings.Settings{Client: c}
-	return doLogin(s, username, password)
+	return doLogin(cf, s, username, password)
 }
 
 // Logout from a Deis controller.
-func Logout() error {
-	if err := settings.Delete(); err != nil {
+func Logout(cf string) error {
+	if err := settings.Delete(cf); err != nil {
 		return err
 	}
 
@@ -141,8 +142,8 @@ func Logout() error {
 }
 
 // Passwd changes a user's password.
-func Passwd(username string, password string, newPassword string) error {
-	s, err := settings.Load()
+func Passwd(cf, username, password, newPassword string) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -186,8 +187,8 @@ func Passwd(username string, password string, newPassword string) error {
 }
 
 // Cancel deletes a user's account.
-func Cancel(username string, password string, yes bool) error {
-	s, err := settings.Load()
+func Cancel(cf, username, password string, yes bool) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -196,7 +197,7 @@ func Cancel(username string, password string, yes bool) error {
 	if username == "" || password != "" {
 		fmt.Println("Please log in again in order to cancel this account")
 
-		if err = Login(s.Client.ControllerURL.String(), username, password, s.Client.VerifySSL); err != nil {
+		if err = Login(cf, s.Client.ControllerURL.String(), username, password, s.Client.VerifySSL); err != nil {
 			return err
 		}
 	}
@@ -204,7 +205,7 @@ func Cancel(username string, password string, yes bool) error {
 	if !yes {
 		confirm := ""
 
-		s, err = settings.Load()
+		s, err = settings.Load(cf)
 
 		if err != nil {
 			return err
@@ -238,7 +239,7 @@ func Cancel(username string, password string, yes bool) error {
 
 	// If user targets themselves, logout.
 	if username == "" || s.Username == username {
-		if err := settings.Delete(); err != nil {
+		if err := settings.Delete(cf); err != nil {
 			return err
 		}
 	}
@@ -249,8 +250,8 @@ func Cancel(username string, password string, yes bool) error {
 
 // Whoami prints the logged in user. If all is true, it fetches info from the controller to know
 // more about the user.
-func Whoami(all bool) error {
-	s, err := settings.Load()
+func Whoami(cf string, all bool) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -269,8 +270,8 @@ func Whoami(all bool) error {
 }
 
 // Regenerate regenenerates a user's token.
-func Regenerate(username string, all bool) error {
-	s, err := settings.Load()
+func Regenerate(cf string, username string, all bool) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -283,8 +284,7 @@ func Regenerate(username string, all bool) error {
 
 	if username == "" && !all {
 		s.Client.Token = token
-
-		err = s.Save()
+		_, err = s.Save(cf)
 
 		if err != nil {
 			return err

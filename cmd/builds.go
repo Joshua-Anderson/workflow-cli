@@ -11,8 +11,8 @@ import (
 )
 
 // BuildsList lists an app's builds.
-func BuildsList(appID string, results int) error {
-	s, appID, err := load(appID)
+func BuildsList(cf, appID string, results int) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -36,8 +36,8 @@ func BuildsList(appID string, results int) error {
 }
 
 // BuildsCreate creates a build for an app.
-func BuildsCreate(appID, image, procfile string) error {
-	s, appID, err := load(appID)
+func BuildsCreate(cf, appID, image, procfile string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err

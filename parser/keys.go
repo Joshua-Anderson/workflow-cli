@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func keysList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists SSH keys for the logged in user.
 
 Usage: deis keys:list [options]
@@ -48,7 +48,7 @@ Usage: deis keys:list [options]
 Options:
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -62,11 +62,11 @@ Options:
 		return err
 	}
 
-	return cmd.KeysList(results)
+	return cmd.KeysList(safeGetValue(args, "--config"), results)
 }
 
 func keyAdd(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Adds SSH keys for the logged in user.
 
 Usage: deis keys:add [<key>]
@@ -74,7 +74,7 @@ Usage: deis keys:add [<key>]
 Arguments:
   <key>
     a local file path to an SSH public key used to push application code.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -82,13 +82,14 @@ Arguments:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	key := safeGetValue(args, "<key>")
 
-	return cmd.KeyAdd(key)
+	return cmd.KeyAdd(cf, key)
 }
 
 func keyRemove(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Removes an SSH key for the logged in user.
 
 Usage: deis keys:remove <key>
@@ -96,7 +97,7 @@ Usage: deis keys:remove <key>
 Arguments:
   <key>
     the SSH public key to revoke source code push access.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -104,7 +105,8 @@ Arguments:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	key := safeGetValue(args, "<key>")
 
-	return cmd.KeyRemove(key)
+	return cmd.KeyRemove(cf, key)
 }

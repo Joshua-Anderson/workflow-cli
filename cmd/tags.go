@@ -11,8 +11,8 @@ import (
 )
 
 // TagsList lists an app's tags.
-func TagsList(appID string) error {
-	s, appID, err := load(appID)
+func TagsList(cf, appID string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -37,8 +37,8 @@ func TagsList(appID string) error {
 }
 
 // TagsSet sets an app's tags.
-func TagsSet(appID string, tags []string) error {
-	s, appID, err := load(appID)
+func TagsSet(cf, appID string, tags []string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -61,12 +61,12 @@ func TagsSet(appID string, tags []string) error {
 
 	fmt.Print("done\n\n")
 
-	return TagsList(appID)
+	return TagsList(cf, appID)
 }
 
 // TagsUnset removes an app's tags.
-func TagsUnset(appID string, tags []string) error {
-	s, appID, err := load(appID)
+func TagsUnset(cf, appID string, tags []string) error {
+	s, appID, err := load(cf, appID)
 
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func TagsUnset(appID string, tags []string) error {
 
 	fmt.Print("done\n\n")
 
-	return TagsList(appID)
+	return TagsList(cf, appID)
 }
 
 func parseTags(tags []string) map[string]interface{} {

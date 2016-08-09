@@ -16,6 +16,7 @@ domains:remove        unbind a domain from an application
 
 Use 'deis help [command]' to learn more.
 `
+
 	switch argv[0] {
 	case "domains:add":
 		return domainsAdd(argv)
@@ -39,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func domainsAdd(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Binds a domain to an application.
 
 Usage: deis domains:add <domain> [options]
@@ -51,7 +52,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -59,11 +60,15 @@ Options:
 		return err
 	}
 
-	return cmd.DomainsAdd(safeGetValue(args, "--app"), safeGetValue(args, "<domain>"))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	domain := safeGetValue(args, "<domain>")
+
+	return cmd.DomainsAdd(cf, app, domain)
 }
 
 func domainsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists domains bound to an application.
 
 Usage: deis domains:list [options]
@@ -73,7 +78,7 @@ Options:
     the uniquely identifiable name for the application.
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -87,11 +92,14 @@ Options:
 		return err
 	}
 
-	return cmd.DomainsList(safeGetValue(args, "--app"), results)
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.DomainsList(cf, app, results)
 }
 
 func domainsRemove(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unbinds a domain for an application.
 
 Usage: deis domains:remove <domain> [options]
@@ -103,7 +111,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -111,5 +119,9 @@ Options:
 		return err
 	}
 
-	return cmd.DomainsRemove(safeGetValue(args, "--app"), safeGetValue(args, "<domain>"))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	domain := safeGetValue(args, "<domain>")
+
+	return cmd.DomainsRemove(cf, app, domain)
 }

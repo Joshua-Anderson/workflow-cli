@@ -58,7 +58,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func appCreate(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Creates a new application.
 
 - if no <id> is provided, one will be generated automatically.
@@ -77,7 +77,8 @@ Options:
     a buildpack url to use for this app
   -r --remote REMOTE
     name of remote to create. [default: deis]
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -87,13 +88,14 @@ Options:
 	id := safeGetValue(args, "<id>")
 	buildpack := safeGetValue(args, "--buildpack")
 	remote := safeGetValue(args, "--remote")
+	cf := safeGetValue(args, "--config")
 	noRemote := args["--no-remote"].(bool)
 
-	return cmd.AppCreate(id, buildpack, remote, noRemote)
+	return cmd.AppCreate(cf, id, buildpack, remote, noRemote)
 }
 
 func appsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists applications visible to the current user.
 
 Usage: deis apps:list [options]
@@ -101,7 +103,8 @@ Usage: deis apps:list [options]
 Options:
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -114,11 +117,13 @@ Options:
 		return err
 	}
 
-	return cmd.AppsList(results)
+	cf := safeGetValue(args, "--config")
+
+	return cmd.AppsList(cf, results)
 }
 
 func appInfo(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Prints info about the current application.
 
 Usage: deis apps:info [options]
@@ -126,7 +131,8 @@ Usage: deis apps:info [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -134,12 +140,13 @@ Options:
 	}
 
 	app := safeGetValue(args, "--app")
+	cf := safeGetValue(args, "--config")
 
-	return cmd.AppInfo(app)
+	return cmd.AppInfo(cf, app)
 }
 
 func appOpen(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Opens a URL to the application in the default browser.
 
 Usage: deis apps:open [options]
@@ -147,7 +154,8 @@ Usage: deis apps:open [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -155,12 +163,13 @@ Options:
 	}
 
 	app := safeGetValue(args, "--app")
+	cf := safeGetValue(args, "--config")
 
-	return cmd.AppOpen(app)
+	return cmd.AppOpen(cf, app)
 }
 
 func appLogs(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Retrieves the most recent log events.
 
 Usage: deis apps:logs [options]
@@ -170,7 +179,8 @@ Options:
     the uniquely identifiable name for the application.
   -n --lines=<lines>
     the number of lines to display
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -178,6 +188,7 @@ Options:
 	}
 
 	app := safeGetValue(args, "--app")
+	cf := safeGetValue(args, "--config")
 
 	linesStr := safeGetValue(args, "--lines")
 	var lines int
@@ -192,11 +203,11 @@ Options:
 		}
 	}
 
-	return cmd.AppLogs(app, lines)
+	return cmd.AppLogs(cf, app, lines)
 }
 
 func appRun(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Runs a command inside an ephemeral app container. Default environment is
 /bin/bash.
 
@@ -209,7 +220,8 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -217,13 +229,14 @@ Options:
 	}
 
 	app := safeGetValue(args, "--app")
+	cf := safeGetValue(args, "--config")
 	command := strings.Join(args["<command>"].([]string), " ")
 
-	return cmd.AppRun(app, command)
+	return cmd.AppRun(cf, app, command)
 }
 
 func appDestroy(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Destroys an application.
 
 Usage: deis apps:destroy [options]
@@ -234,8 +247,8 @@ Options:
   --confirm=<app>
     skips the prompt for the application name. <app> is the uniquely identifiable
     name for the application.
+`)
 
-`
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -244,12 +257,13 @@ Options:
 
 	app := safeGetValue(args, "--app")
 	confirm := safeGetValue(args, "--confirm")
+	cf := safeGetValue(args, "--config")
 
-	return cmd.AppDestroy(app, confirm)
+	return cmd.AppDestroy(cf, app, confirm)
 }
 
 func appTransfer(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Transfer app ownership to another user.
 
 Usage: deis apps:transfer <username> [options]
@@ -261,12 +275,17 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
 		return err
 	}
 
-	return cmd.AppTransfer(safeGetValue(args, "--app"), safeGetValue(args, "<username>"))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	user := safeGetValue(args, "<username>")
+
+	return cmd.AppTransfer(cf, app, user)
 }

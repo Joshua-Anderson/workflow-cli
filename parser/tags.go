@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func tagsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists tags for an application.
 
 Usage: deis tags:list [options]
@@ -48,7 +48,7 @@ Usage: deis tags:list [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -56,11 +56,11 @@ Options:
 		return err
 	}
 
-	return cmd.TagsList(safeGetValue(args, "--app"))
+	return cmd.TagsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func tagsSet(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets tags for an application.
 
 A tag is a key/value pair used to tag an application's containers and is passed to the
@@ -76,7 +76,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -84,14 +84,15 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	tags := args["<key>=<value>"].([]string)
 
-	return cmd.TagsSet(app, tags)
+	return cmd.TagsSet(cf, app, tags)
 }
 
 func tagsUnset(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unsets tags for an application.
 
 Usage: deis tags:unset [options] <key>...
@@ -102,7 +103,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -110,8 +111,9 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	tags := args["<key>"].([]string)
 
-	return cmd.TagsUnset(app, tags)
+	return cmd.TagsUnset(cf, app, tags)
 }

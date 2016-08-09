@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func limitsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists resource limits for an application.
 
 Usage: deis limits:list [options]
@@ -48,7 +48,7 @@ Usage: deis limits:list [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -56,11 +56,11 @@ Options:
 		return err
 	}
 
-	return cmd.LimitsList(safeGetValue(args, "--app"))
+	return cmd.LimitsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func limitSet(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets resource limits for an application.
 
 A resource limit is a finite resource within a pod which we can apply
@@ -95,7 +95,7 @@ Options:
     limits CPU.
   -m --memory
     limits memory. [default: true]
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -103,6 +103,7 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	limits := args["<type>=<limit>"].([]string)
 	limitType := "memory"
@@ -111,11 +112,11 @@ Options:
 		limitType = "cpu"
 	}
 
-	return cmd.LimitsSet(app, limits, limitType)
+	return cmd.LimitsSet(cf, app, limits, limitType)
 }
 
 func limitUnset(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unsets resource limits for an application.
 
 Usage: deis limits:unset [options] [--memory | --cpu] <type>...
@@ -132,7 +133,7 @@ Options:
     limits cpu shares.
   -m --memory
     limits memory. [default: true]
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -140,6 +141,7 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	limits := args["<type>"].([]string)
 	limitType := "memory"
@@ -148,5 +150,5 @@ Options:
 		limitType = "cpu"
 	}
 
-	return cmd.LimitsUnset(app, limits, limitType)
+	return cmd.LimitsUnset(cf, app, limits, limitType)
 }

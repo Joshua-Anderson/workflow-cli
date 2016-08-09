@@ -43,7 +43,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func releasesList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists release history for an application.
 
 Usage: deis releases:list [options]
@@ -53,7 +53,7 @@ Options:
     the uniquely identifiable name for the application.
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -67,11 +67,14 @@ Options:
 		return err
 	}
 
-	return cmd.ReleasesList(safeGetValue(args, "--app"), results)
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.ReleasesList(cf, app, results)
 }
 
 func releasesInfo(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Prints info about a particular release.
 
 Usage: deis releases:info <version> [options]
@@ -83,7 +86,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -93,11 +96,14 @@ Options:
 		return err
 	}
 
-	return cmd.ReleasesInfo(safeGetValue(args, "--app"), version)
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.ReleasesInfo(cf, app, version)
 }
 
 func releasesRollback(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Rolls back to a previous application release.
 
 Usage: deis releases:rollback [<version>] [options]
@@ -109,7 +115,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -125,7 +131,10 @@ Options:
 		}
 	}
 
-	return cmd.ReleasesRollback(safeGetValue(args, "--app"), version)
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+
+	return cmd.ReleasesRollback(cf, app, version)
 }
 
 func versionFromString(version string) (int, error) {

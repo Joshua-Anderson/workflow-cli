@@ -33,7 +33,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func gitRemote(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Adds git remote of application to repository
 
 Usage: deis git:remote [options]
@@ -45,7 +45,7 @@ Options:
     name of remote to create. [default: deis]
   -f --force
     overwrite remote of the given name if it already exists.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -53,11 +53,16 @@ Options:
 		return err
 	}
 
-	return cmd.GitRemote(safeGetValue(args, "--app"), args["--remote"].(string), args["--force"].(bool))
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
+	remote := safeGetValue(args, "--remote")
+	force := args["--force"].(bool)
+
+	return cmd.GitRemote(cf, app, remote, force)
 }
 
 func gitRemove(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Removes git remotes of application from repository.
 
 Usage: deis git:remove [options]
@@ -65,7 +70,7 @@ Usage: deis git:remove [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -73,5 +78,5 @@ Options:
 		return err
 	}
 
-	return cmd.GitRemove(safeGetValue(args, "--app"))
+	return cmd.GitRemove(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }

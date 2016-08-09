@@ -16,8 +16,8 @@ import (
 )
 
 // KeysList lists a user's keys.
-func KeysList(results int) error {
-	s, err := settings.Load()
+func KeysList(cf string, results int) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -41,8 +41,8 @@ func KeysList(results int) error {
 }
 
 // KeyRemove removes keys.
-func KeyRemove(keyID string) error {
-	s, err := settings.Load()
+func KeyRemove(cf, keyID string) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err
@@ -60,8 +60,8 @@ func KeyRemove(keyID string) error {
 }
 
 // KeyAdd adds keys.
-func KeyAdd(keyLocation string) error {
-	s, err := settings.Load()
+func KeyAdd(cf, keyLocation string) error {
+	s, err := settings.Load(cf)
 
 	if err != nil {
 		return err

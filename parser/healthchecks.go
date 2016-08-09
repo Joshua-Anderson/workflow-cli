@@ -46,7 +46,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func healthchecksList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists healthchecks for an application.
 
 Usage: deis healthchecks:list [options]
@@ -54,7 +54,7 @@ Usage: deis healthchecks:list [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -62,11 +62,11 @@ Options:
 		return err
 	}
 
-	return cmd.HealthchecksList(safeGetValue(args, "--app"))
+	return cmd.HealthchecksList(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func healthchecksSet(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Sets healthchecks for an application.
 
 By default, Workflow only checks that the application starts in their Container. A health
@@ -123,7 +123,7 @@ Options:
     minimum consecutive successes for the probe to be considered successful after having failed [default: 1]
   --failure-threshold=<failure-threshold>
     minimum consecutive successes for the probe to be considered failed after having succeeded [default: 3]
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -131,6 +131,7 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	path := safeGetValue(args, "--path")
 	initialDelayTimeout := safeGetInt(args, "--initial-delay-timeout")
@@ -193,11 +194,11 @@ Options:
 	default:
 		return fmt.Errorf("Invalid probe type. Must be one of: \"httpGet\", \"exec\"")
 	}
-	return cmd.HealthchecksSet(app, healthcheckType, probe)
+	return cmd.HealthchecksSet(cf, app, healthcheckType, probe)
 }
 
 func healthchecksUnset(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Unsets healthchecks for an application.
 
 Usage: deis healthchecks:unset [options] <type>...
@@ -209,7 +210,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -217,6 +218,7 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	healthchecks := args["<type>"].([]string)
 
@@ -226,7 +228,7 @@ Options:
 		healthchecks[healthcheck] += "Probe"
 	}
 
-	return cmd.HealthchecksUnset(app, healthchecks)
+	return cmd.HealthchecksUnset(cf, app, healthchecks)
 }
 
 func parseHeaders(headers []string) ([]*api.KVPair, error) {

@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func psList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists processes servicing an application.
 
 Usage: deis ps:list [options]
@@ -48,7 +48,7 @@ Usage: deis ps:list [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 	if err != nil {
@@ -56,11 +56,11 @@ Options:
 	}
 
 	// The 1000 is fake for now until API understands limits
-	return cmd.PsList(safeGetValue(args, "--app"), 1000)
+	return cmd.PsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), 1000)
 }
 
 func psRestart(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Restart an application, a process type or a specific process.
 
 Usage: deis ps:restart [<type>] [options]
@@ -73,7 +73,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -81,11 +81,14 @@ Options:
 		return err
 	}
 
-	return cmd.PsRestart(safeGetValue(args, "--app"), safeGetValue(args, "<type>"))
+	cf := safeGetValue(args, "--config")
+	apps := safeGetValue(args, "--app")
+	tp := safeGetValue(args, "<type>")
+	return cmd.PsRestart(cf, apps, tp)
 }
 
 func psScale(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Scales an application's processes by type.
 
 Usage: deis ps:scale <type>=<num>... [options]
@@ -100,7 +103,7 @@ Arguments:
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -108,5 +111,7 @@ Options:
 		return err
 	}
 
-	return cmd.PsScale(safeGetValue(args, "--app"), args["<type>=<num>"].([]string))
+	cf := safeGetValue(args, "--config")
+	apps := safeGetValue(args, "--app")
+	return cmd.PsScale(cf, apps, args["<type>=<num>"].([]string))
 }

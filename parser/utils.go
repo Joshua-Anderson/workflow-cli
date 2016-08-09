@@ -49,3 +49,10 @@ func printHelp(argv []string, usage string) bool {
 
 	return false
 }
+
+func addGlobalFlags(input string) string {
+	return input + `  -c --config=<config>
+    path to configuration file. Equilivent to
+    setting $DEIS_PROFILE. Defaults to ~/.deis/config.json.
+    If value is not a filepath, will assume location ~/.deis/<value>.json`
+}

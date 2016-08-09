@@ -40,7 +40,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func routingInfo(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Prints info about the current application's routability.
 
 Usage: deis routing:info [options]
@@ -48,7 +48,7 @@ Usage: deis routing:info [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name for the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -56,11 +56,11 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingInfo(safeGetValue(args, "--app"))
+	return cmd.RoutingInfo(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func routingEnable(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Enables routability for an app.
 
 Usage: deis routing:enable [options]
@@ -68,7 +68,7 @@ Usage: deis routing:enable [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -76,11 +76,11 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingEnable(safeGetValue(args, "--app"))
+	return cmd.RoutingEnable(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }
 
 func routingDisable(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Disables routability for an app.
 
 Usage: deis routing:disable [options]
@@ -88,7 +88,7 @@ Usage: deis routing:disable [options]
 Options:
   -a --app=<app>
     the uniquely identifiable name of the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -96,5 +96,5 @@ Options:
 		return err
 	}
 
-	return cmd.RoutingDisable(safeGetValue(args, "--app"))
+	return cmd.RoutingDisable(safeGetValue(args, "--config"), safeGetValue(args, "--app"))
 }

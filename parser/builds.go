@@ -37,7 +37,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func buildsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists build history for an application.
 
 Usage: deis builds:list [options]
@@ -47,7 +47,7 @@ Options:
     the uniquely identifiable name for the application.
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -61,11 +61,11 @@ Options:
 		return err
 	}
 
-	return cmd.BuildsList(safeGetValue(args, "--app"), results)
+	return cmd.BuildsList(safeGetValue(args, "--config"), safeGetValue(args, "--app"), results)
 }
 
 func buildsCreate(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Creates a new build of an application. Imports an <image> and deploys it to Deis
 as a new release. If a Procfile is present in the current directory, it will be used
 as the default process types for this application.
@@ -83,7 +83,7 @@ Options:
     The uniquely identifiable name for the application.
   -p --procfile=<procfile>
     A YAML string used to supply a Procfile to the application.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -94,6 +94,7 @@ Options:
 	app := safeGetValue(args, "--app")
 	image := safeGetValue(args, "<image>")
 	procfile := safeGetValue(args, "--procfile")
+	cf := safeGetValue(args, "--config")
 
-	return cmd.BuildsCreate(app, image, procfile)
+	return cmd.BuildsCreate(cf, app, image, procfile)
 }

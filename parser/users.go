@@ -34,7 +34,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func usersList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists all registered users.
 Requires admin privilages.
 
@@ -43,7 +43,7 @@ Usage: deis users:list [options]
 Options:
   -l --limit=<num>
     the maximum number of results to display, defaults to config setting
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -57,5 +57,5 @@ Options:
 		return err
 	}
 
-	return cmd.UsersList(results)
+	return cmd.UsersList(safeGetValue(args, "--config"), results)
 }

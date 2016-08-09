@@ -29,6 +29,9 @@ Option flags::
 
   -h --help     display help information
   -v --version  display client version
+  -c --config   (optional) path to configuration file. Equilivent to
+                setting $DEIS_PROFILE. Defaults to ~/.deis/config.json.
+                If not set to a filepath, will assume location ~/.deis/<value>.json
 
 Auth commands, use 'deis help auth' to learn more::
 
@@ -174,7 +177,7 @@ func parseArgs(argv []string) (string, []string) {
 		}
 	}
 
-	if len(argv) >= 2 {
+	if len(argv) > 1 {
 		// Rearrange "deis help <command>" to "deis <command> --help".
 		if argv[0] == "help" || argv[0] == "--help" || argv[0] == "-h" {
 			argv = append(argv[1:], "--help")

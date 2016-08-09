@@ -16,6 +16,7 @@ perms:delete          delete a permission for a user
 
 Use 'deis help perms:[command]' to learn more.
 `
+
 	switch argv[0] {
 	case "perms:list":
 		return permsList(argv)
@@ -39,7 +40,7 @@ Use 'deis help perms:[command]' to learn more.
 }
 
 func permsList(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Lists all users with permission to use an app, or lists all users with system
 administrator privileges.
 
@@ -52,8 +53,7 @@ Options:
   --admin
     lists all users with system administrator privileges.
   -l --limit=<num>
-    the maximum number of results to display, defaults to config setting
-`
+    the maximum number of results to display, defaults to config setting`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -61,6 +61,8 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
+	app := safeGetValue(args, "--app")
 	admin := args["--admin"].(bool)
 
 	results, err := responseLimit(safeGetValue(args, "--limit"))
@@ -69,11 +71,11 @@ Options:
 		return err
 	}
 
-	return cmd.PermsList(safeGetValue(args, "--app"), admin, results)
+	return cmd.PermsList(cf, app, admin, results)
 }
 
 func permCreate(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Gives another user permission to use an app, or gives another user
 system administrator privileges.
 
@@ -88,8 +90,7 @@ Options:
     grants <username> permission to use <app>. <app> is the uniquely identifiable name
     for the application.
   --admin
-    grants <username> system administrator privileges.
-`
+    grants <username> system administrator privileges.`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -97,15 +98,16 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	username := args["<username>"].(string)
 	admin := args["--admin"].(bool)
 
-	return cmd.PermCreate(app, username, admin)
+	return cmd.PermCreate(cf, app, username, admin)
 }
 
 func permDelete(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Revokes another user's permission to use an app, or revokes another user's system
 administrator privileges.
 
@@ -120,8 +122,7 @@ Options:
     revokes <username> permission to use <app>. <app> is the uniquely identifiable name
     for the application.
   --admin
-    revokes <username> system administrator privileges.
-`
+    revokes <username> system administrator privileges.`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -129,9 +130,10 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	app := safeGetValue(args, "--app")
 	username := args["<username>"].(string)
 	admin := args["--admin"].(bool)
 
-	return cmd.PermDelete(app, username, admin)
+	return cmd.PermDelete(cf, app, username, admin)
 }

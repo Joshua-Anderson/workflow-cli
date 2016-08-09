@@ -48,7 +48,7 @@ Use 'deis help [command]' to learn more.
 }
 
 func authRegister(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Registers a new user with a Deis controller.
 
 Usage: deis auth:register <controller> [options]
@@ -66,7 +66,8 @@ Options:
     provide an email address.
   --ssl-verify=false
     disables SSL certificate verification for API requests
-`
+`)
+
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
 	if err != nil {
@@ -77,17 +78,18 @@ Options:
 	username := safeGetValue(args, "--username")
 	password := safeGetValue(args, "--password")
 	email := safeGetValue(args, "--email")
+	cf := safeGetValue(args, "--config")
 	sslVerify := false
 
 	if args["--ssl-verify"] != nil && args["--ssl-verify"].(string) == "true" {
 		sslVerify = true
 	}
 
-	return cmd.Register(controller, username, password, email, sslVerify)
+	return cmd.Register(cf, controller, username, password, email, sslVerify)
 }
 
 func authLogin(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Logs in by authenticating against a controller.
 
 Usage: deis auth:login <controller> [options]
@@ -103,7 +105,7 @@ Options:
     provide a password for the account.
   --ssl-verify=false
     disables SSL certificate verification for API requests
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -114,31 +116,35 @@ Options:
 	controller := safeGetValue(args, "<controller>")
 	username := safeGetValue(args, "--username")
 	password := safeGetValue(args, "--password")
+	cf := safeGetValue(args, "--config")
 	sslVerify := false
 
 	if args["--ssl-verify"] != nil && args["--ssl-verify"].(string) == "true" {
 		sslVerify = true
 	}
 
-	return cmd.Login(controller, username, password, sslVerify)
+	return cmd.Login(cf, controller, username, password, sslVerify)
 }
 
 func authLogout(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Logs out from a controller and clears the user session.
 
 Usage: deis auth:logout
-`
 
-	if _, err := docopt.Parse(usage, argv, true, "", false, true); err != nil {
+Options:
+`)
+
+	args, err := docopt.Parse(usage, argv, true, "", false, true)
+	if err != nil {
 		return err
 	}
 
-	return cmd.Logout()
+	return cmd.Logout(safeGetValue(args, "--config"))
 }
 
 func authPasswd(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Changes the password for the current user.
 
 Usage: deis auth:passwd [options]
@@ -150,7 +156,7 @@ Options:
     the new password for the account.
   --username=<username>
     the account's username.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -158,15 +164,16 @@ Options:
 		return err
 	}
 
+	cf := safeGetValue(args, "--config")
 	username := safeGetValue(args, "--username")
 	password := safeGetValue(args, "--password")
 	newPassword := safeGetValue(args, "--new-password")
 
-	return cmd.Passwd(username, password, newPassword)
+	return cmd.Passwd(cf, username, password, newPassword)
 }
 
 func authWhoami(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Displays the currently logged in user.
 
 Usage: deis auth:whoami [options]
@@ -174,7 +181,7 @@ Usage: deis auth:whoami [options]
 Options:
   --all
     fetch a more detailed description about the user.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -182,11 +189,11 @@ Options:
 		return err
 	}
 
-	return cmd.Whoami(args["--all"].(bool))
+	return cmd.Whoami(safeGetValue(args, "--config"), args["--all"].(bool))
 }
 
 func authCancel(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Cancels and removes the current account.
 
 Usage: deis auth:cancel [options]
@@ -198,7 +205,7 @@ Options:
     provide a password for the account.
   --yes
     force "yes" when prompted.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -208,13 +215,14 @@ Options:
 
 	username := safeGetValue(args, "--username")
 	password := safeGetValue(args, "--password")
+	cf := safeGetValue(args, "--config")
 	yes := args["--yes"].(bool)
 
-	return cmd.Cancel(username, password, yes)
+	return cmd.Cancel(cf, username, password, yes)
 }
 
 func authRegenerate(argv []string) error {
-	usage := `
+	usage := addGlobalFlags(`
 Regenerates auth token, defaults to regenerating token for the current user.
 
 Usage: deis auth:regenerate [options]
@@ -224,7 +232,7 @@ Options:
     specify user to regenerate. Requires admin privilages.
   --all
     regenerate token for every user. Requires admin privilages.
-`
+`)
 
 	args, err := docopt.Parse(usage, argv, true, "", false, true)
 
@@ -233,7 +241,8 @@ Options:
 	}
 
 	username := safeGetValue(args, "--username")
+	cf := safeGetValue(args, "--config")
 	all := args["--all"].(bool)
 
-	return cmd.Regenerate(username, all)
+	return cmd.Regenerate(cf, username, all)
 }
